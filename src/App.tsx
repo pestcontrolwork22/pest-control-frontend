@@ -2,22 +2,30 @@ import { Routes, Route, BrowserRouter } from "react-router-dom";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/user/Home";
+import { Layout } from "./components/common/Layout";
+import Contract from "./pages/user/Contract";
+import ContractView from "./components/ContractView";
 
 function App() {
   return (
     <div className="App">
       <BrowserRouter>
         <Routes>
+          {/* Public Route */}
+          <Route path="/login" element={<Login />} />
+
+          {/* Protected Routes */}
           <Route
-            path="/"
             element={
               <ProtectedRoute>
-                <Home />
+                <Layout />
               </ProtectedRoute>
             }
-          />
-
-          <Route path="/login" element={<Login />} />
+          >
+            <Route index element={<Home />} />
+            <Route path="/Contracts" element={<Contract />} />
+            <Route path="/contracts/:id" element={<ContractView />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </div>
