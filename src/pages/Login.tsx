@@ -1,5 +1,6 @@
 import { useState } from "react";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
+import api from "@/api/axios";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -13,10 +14,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:4000/api/auth/login", {
-        email,
-        password,
-      });
+      const res = await api.post("/auth/login", { email, password });
 
       localStorage.setItem("token", res.data.token);
 
