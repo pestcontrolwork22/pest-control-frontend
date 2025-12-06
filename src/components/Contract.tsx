@@ -173,6 +173,9 @@ export const Contracts = () => {
                 <thead className="bg-blue-600 text-white">
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-semibold">
+                      Contract Number
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">
                       Title
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold">
@@ -202,6 +205,9 @@ export const Contracts = () => {
                         key={contract._id}
                         className="hover:bg-gray-50 transition"
                       >
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          {contract.contractNumber}
+                        </td>
                         <td className="px-6 py-4 text-sm font-medium text-gray-900">
                           {contract.title}
                         </td>

@@ -20,8 +20,10 @@ import {
 
 import { useAppDispatch } from "@/hooks/useDispatch";
 import { fetchContractById } from "@/store/contract/thunk";
-import { useParams } from "react-router-dom";
-import CreateJobModal from "./modal/CreateJobModal";
+import { useNavigate, useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import JobModal from "./modal/CreateJobModal";
 
 export default function ContractView() {
   const params = useParams();
@@ -29,9 +31,12 @@ export default function ContractView() {
 
   const dispatch = useAppDispatch();
 
-  const [contract, setContract] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const contract = useSelector((state: RootState) => state.contracts.single);
+  const loading = useSelector((state: RootState) => state.contracts.loading);
+
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
+
+  const navigate = useNavigate();
 
   // -------------------------------------
   // Fetch contract data
@@ -40,14 +45,10 @@ export default function ContractView() {
     if (!id) return;
 
     const load = async () => {
-      setLoading(true);
       try {
-        const result = await dispatch(fetchContractById(id as string)).unwrap();
-        setContract(result);
+        await dispatch(fetchContractById(id as string)).unwrap();
       } catch (error) {
         console.error("Failed to fetch contract:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -71,15 +72,6 @@ export default function ContractView() {
   // -------------------------------------
   // UI Helpers
   // -------------------------------------
-  const getPriorityColor = (priority: string) => {
-    const colors: any = {
-      low: "bg-gray-100 text-gray-700",
-      medium: "bg-blue-100 text-blue-700",
-      high: "bg-orange-100 text-orange-700",
-      urgent: "bg-red-100 text-red-700",
-    };
-    return colors[priority] || colors.medium;
-  };
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
@@ -126,13 +118,6 @@ export default function ContractView() {
                     <h1 className="text-3xl font-bold text-gray-900">
                       {contract.title}
                     </h1>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${getPriorityColor(
-                        contract.priority
-                      )}`}
-                    >
-                      {contract.priority} Priority
-                    </span>
                   </div>
                   <p className="text-gray-600 text-lg">{contract.aliasName}</p>
                   <p className="text-gray-500 text-sm mt-2">
@@ -225,7 +210,7 @@ export default function ContractView() {
                             : "bg-red-100 text-red-700"
                         }`}
                       >
-                        {job.status}
+                        {job.jobType}
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 mb-1">
@@ -240,6 +225,14 @@ export default function ContractView() {
                     <p className="text-lg font-bold text-blue-600 mt-2">
                       AED {job.grandTotal.toFixed(2)}
                     </p>
+                    <button
+                      onClick={() =>
+                        navigate(`/contracts/${contract._id}/jobs/${job._id}`)
+                      }
+                      className="text-blue-600 hover:underline text-sm mt-2"
+                    >
+                      View Job →
+                    </button>
                   </div>
                 ))}
               </div>
@@ -392,12 +385,12 @@ export default function ContractView() {
                 <div className="space-y-4">
                   <TimelineItem
                     label="Created"
-                    date={formatDate(contract.createdAt)}
+                    date={formatDate(contract.createdAt!)}
                     icon="create"
                   />
                   <TimelineItem
                     label="Last Updated"
-                    date={formatDate(contract.updatedAt)}
+                    date={formatDate(contract.updatedAt!)}
                     icon="update"
                   />
                 </div>
@@ -409,10 +402,11 @@ export default function ContractView() {
 
       {/* Create Job Modal */}
       {contract && (
-        <CreateJobModal
+        <JobModal
           isOpen={isJobModalOpen}
           onClose={() => setIsJobModalOpen(false)}
           contractId={contract._id}
+          mode="create"
         />
       )}
     </>
