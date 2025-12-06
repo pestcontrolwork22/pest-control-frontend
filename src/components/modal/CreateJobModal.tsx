@@ -1,9 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Plus, Trash2, DollarSign } from "lucide-react";
 import { useAppDispatch } from "@/hooks/useDispatch";
-import { createJobForContract } from "@/store/contract/thunk";
+import { createJobForContract, updateJobForContract } from "@/store/contract/thunk";
+import { Job } from "@/types/contract";
 
-export default function CreateJobModal({ isOpen, onClose, contractId }: any) {
+interface JobModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  contractId: string;
+  job?: Job | null;
+  mode: "create" | "edit";
+}
+
+export default function JobModal({ 
+  isOpen, 
+  onClose, 
+  contractId, 
+  job = null,
+  mode = "create"
+}: JobModalProps) {
   const [formData, setFormData] = useState({
     jobType: "recurring",
     contractDate: "",
@@ -61,6 +76,58 @@ export default function CreateJobModal({ isOpen, onClose, contractId }: any) {
 
   const dispatch = useAppDispatch();
 
+  // Load job data when in edit mode
+  useEffect(() => {
+    if (mode === "edit" && job) {
+      setFormData({
+        jobType: job.jobType,
+        contractDate: job.contractDate.split("T")[0],
+        startDate: job.startDate.split("T")[0],
+        endDate: job.endDate.split("T")[0],
+        contractedBy: job.contractedBy,
+        expiryRemindBefore: job.expiryRemindBefore,
+        isTaxExempt: job.isTaxExempt,
+        invoiceReminder: {
+          startDate: job.invoiceReminder.startDate.split("T")[0],
+          endDate: job.invoiceReminder.endDate.split("T")[0],
+          isAdvanceInvoice: job.invoiceReminder.isAdvanceInvoice,
+          invoiceAfterJobsClosed: job.invoiceReminder.invoiceAfterJobsClosed,
+          billingFrequency: job.invoiceReminder.billingFrequency,
+        },
+        servicesProducts: job.servicesProducts,
+      });
+    } else if (mode === "create") {
+      // Reset form for create mode
+      setFormData({
+        jobType: "recurring",
+        contractDate: "",
+        startDate: "",
+        endDate: "",
+        contractedBy: "",
+        expiryRemindBefore: 30,
+        isTaxExempt: false,
+        invoiceReminder: {
+          startDate: "",
+          endDate: "",
+          isAdvanceInvoice: false,
+          invoiceAfterJobsClosed: false,
+          billingFrequency: "monthly",
+        },
+        servicesProducts: [
+          {
+            serviceType: "building_cleaning",
+            instructions: "",
+            units: 1,
+            rate: 0,
+            subtotalPerYear: 0,
+            frequencyDays: 30,
+            isEveryDay: false,
+          },
+        ],
+      });
+    }
+  }, [mode, job]);
+
   // Calculate totals
   const calculateTotals = () => {
     const subtotal = formData.servicesProducts.reduce(
@@ -117,16 +184,31 @@ export default function CreateJobModal({ isOpen, onClose, contractId }: any) {
 
   // Submit
   const handleSubmit = async () => {
-    const jobData = {
-      ...formData,
-      subtotal,
-      vat,
-      grandTotal,
-      contractId,
-    };
-    console.log("Job Data:", jobData, contractId);
-    await dispatch(createJobForContract({ contractId, jobData }));
-    onClose();
+    try {
+      const jobData = {
+        ...formData,
+        subtotal,
+        vat,
+        grandTotal,
+      };
+
+      if (mode === "create") {
+        await dispatch(createJobForContract({ contractId, jobData })).unwrap();
+      } else if (mode === "edit" && job) {
+        await dispatch(
+          updateJobForContract({
+            contractId,
+            jobId: job._id,
+            updates: jobData,
+          })
+        ).unwrap();
+      }
+
+      onClose();
+    } catch (error) {
+      console.error(`Failed to ${mode} job:`, error);
+      alert(`Failed to ${mode} job. Please try again.`);
+    }
   };
 
   if (!isOpen) return null;
@@ -136,7 +218,14 @@ export default function CreateJobModal({ isOpen, onClose, contractId }: any) {
       <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full my-8">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">Create New Job</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {mode === "create" ? "Create New Job" : "Edit Job"}
+            </h2>
+            {mode === "edit" && job && (
+              <p className="text-sm text-gray-500 mt-1">Job ID: {job._id}</p>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition"
@@ -145,7 +234,7 @@ export default function CreateJobModal({ isOpen, onClose, contractId }: any) {
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
           {/* Job Type & Basic Info */}
           <div className="bg-blue-50 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -585,7 +674,7 @@ export default function CreateJobModal({ isOpen, onClose, contractId }: any) {
               onClick={handleSubmit}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md"
             >
-              Create Job
+              {mode === "create" ? "Create Job" : "Save Changes"}
             </button>
           </div>
         </div>

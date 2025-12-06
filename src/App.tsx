@@ -5,6 +5,7 @@ import Home from "./pages/user/Home";
 import { Layout } from "./components/common/Layout";
 import Contract from "./pages/user/Contract";
 import ContractView from "./components/ContractView";
+import JobViewPage from "./components/JobView";
 
 function App() {
   return (
@@ -25,6 +26,10 @@ function App() {
             <Route index element={<Home />} />
             <Route path="/Contracts" element={<Contract />} />
             <Route path="/contracts/:id" element={<ContractView />} />
+            <Route
+              path="/contracts/:id/jobs/:jobId"
+              element={<JobViewPage />}
+            />
           </Route>
         </Routes>
       </BrowserRouter>

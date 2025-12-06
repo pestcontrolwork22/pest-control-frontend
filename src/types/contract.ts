@@ -23,6 +23,7 @@ export interface Contract {
   remarks: string;
   createdAt?: string;
   updatedAt?: string;
+  contractNumber: string;
 }
 
 export interface ContractsState {
@@ -36,6 +37,7 @@ export interface ContractsState {
   };
   loading: boolean;
   error: any;
+  currentJob: Job | null;
 }
 
 export interface Job {

@@ -1,10 +1,14 @@
 import { createSlice } from "@reduxjs/toolkit";
 import {
   createContract,
+  createJobForContract,
   deleteContract,
+  deleteJobForContract,
   fetchContractById,
   fetchContracts,
+  fetchJobById,
   updateContract,
+  updateJobForContract,
 } from "./thunk";
 import { ContractsState } from "@/types/contract";
 
@@ -19,6 +23,7 @@ const initialState: ContractsState = {
   },
   loading: false,
   error: null,
+  currentJob: null,
 };
 
 const contractSlice = createSlice({
@@ -29,10 +34,13 @@ const contractSlice = createSlice({
     clearContract(state) {
       state.single = null;
     },
+    clearCurrentJob(state) {
+      state.currentJob = null;
+    },
   },
 
   extraReducers: (builder) => {
-    // Fetch All
+    // Fetch All Contracts
     builder
       .addCase(fetchContracts.pending, (state) => {
         state.loading = true;
@@ -48,7 +56,7 @@ const contractSlice = createSlice({
         state.error = action.payload;
       });
 
-    // Fetch One
+    // Fetch Single Contract
     builder
       .addCase(fetchContractById.pending, (state) => {
         state.loading = true;
@@ -63,7 +71,7 @@ const contractSlice = createSlice({
         state.error = action.payload;
       });
 
-    // Create
+    // Create Contract
     builder
       .addCase(createContract.pending, (state) => {
         state.loading = true;
@@ -77,7 +85,7 @@ const contractSlice = createSlice({
         state.error = action.payload;
       });
 
-    // Update
+    // Update Contract
     builder
       .addCase(updateContract.pending, (state) => {
         state.loading = true;
@@ -88,23 +96,111 @@ const contractSlice = createSlice({
           (c) => c._id === action.payload._id
         );
         if (index !== -1) state.items[index] = action.payload;
+        if (state.single?._id === action.payload._id) {
+          state.single = action.payload;
+        }
       })
       .addCase(updateContract.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
 
-    // Delete
+    // Delete Contract
     builder
+      .addCase(deleteContract.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(deleteContract.fulfilled, (state, action) => {
+        state.loading = false;
         state.items = state.items.filter((c) => c._id !== action.payload);
+        if (state.single?._id === action.payload) {
+          state.single = null;
+        }
       })
       .addCase(deleteContract.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
+    // Create Job for Contract
+    builder
+      .addCase(createJobForContract.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(createJobForContract.fulfilled, (state, action) => {
+        state.loading = false;
+        if (state.single) {
+          state.single = action.payload.data;
+        }
+      })
+      .addCase(createJobForContract.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
+    // Fetch Job by ID
+    builder
+      .addCase(fetchJobById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchJobById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentJob = action.payload;
+      })
+      .addCase(fetchJobById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
+    // Update Job for Contract
+    builder
+      .addCase(updateJobForContract.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(updateJobForContract.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentJob = action.payload;
+
+        if (state.single && state.single.jobs) {
+          const jobIndex = state.single.jobs.findIndex(
+            (job) => job._id === action.payload._id
+          );
+          if (jobIndex !== -1) {
+            state.single.jobs[jobIndex] = action.payload;
+          }
+        }
+      })
+      .addCase(updateJobForContract.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
+    // Delete Job for Contract
+    builder
+      .addCase(deleteJobForContract.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(deleteJobForContract.fulfilled, (state, action) => {
+        state.loading = false;
+
+        if (state.single && state.single.jobs) {
+          state.single.jobs = state.single.jobs.filter(
+            (job) => job._id !== action.payload
+          );
+        }
+
+        if (state.currentJob?._id === action.payload) {
+          state.currentJob = null;
+        }
+      })
+      .addCase(deleteJobForContract.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload;
       });
   },
 });
 
-export const { clearContract } = contractSlice.actions;
+export const { clearContract, clearCurrentJob } = contractSlice.actions;
 
 export default contractSlice.reducer;

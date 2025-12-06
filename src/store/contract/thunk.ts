@@ -107,3 +107,71 @@ export const createJobForContract = createAsyncThunk(
     }
   }
 );
+
+export const fetchJobById = createAsyncThunk(
+  "contracts/fetchJobById",
+  async (
+    { contractId, jobId }: { contractId: string; jobId: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const res = await api.get(`/contracts/${contractId}/jobs/${jobId}`);
+      return res.data.data;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data || "Unable to fetch job");
+    }
+  }
+);
+
+export const deleteJob = createAsyncThunk(
+  "contracts/deleteJob",
+  async (
+    { contractId, jobId }: { contractId: string; jobId: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const res = await api.delete(`/contracts/${contractId}/jobs/${jobId}`);
+      return res.data.data;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data || "Unable to delete job");
+    }
+  }
+);
+
+export const updateJobForContract = createAsyncThunk(
+  "contracts/updateJob",
+  async (
+    {
+      contractId,
+      jobId,
+      updates,
+    }: { contractId: string; jobId: string; updates: any },
+    { rejectWithValue }
+  ) => {
+    try {
+      const res = await api.patch(
+        `/contracts/${contractId}/jobs/${jobId}`,
+        updates
+      );
+      return res.data.data;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+// deleteJobThunk
+export const deleteJobForContract = createAsyncThunk(
+  "contracts/deleteJob",
+  async (
+    { contractId, jobId }: { contractId: string; jobId: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      await api.delete(`/contracts/${contractId}/jobs/${jobId}`);
+      return jobId;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
