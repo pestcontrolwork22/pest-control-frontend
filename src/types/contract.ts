@@ -54,7 +54,8 @@ export interface Job {
   vat: number;
   grandTotal: number;
   _id: string;
-  status: "pending" | "completed" | "cancelled";
+  status: "work pending" | "work done" | "work informed";
+  dayType: "day" | "night";
   createdAt: string;
   updatedAt: string;
 }
@@ -74,5 +75,6 @@ export interface ServicesProduct {
   rate: number;
   subtotalPerYear: number;
   frequencyDays: number;
+  frequencyUnit: "day" | "week" | "month" | "year";
   isEveryDay: boolean;
 }

@@ -4,12 +4,12 @@ import { useAppDispatch } from "@/hooks/useDispatch";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { deleteJobForContract, fetchJobById } from "@/store/contract/thunk";
-import { 
-  Briefcase, 
-  Calendar, 
-  Clock, 
-  Trash2, 
-  Edit3, 
+import {
+  Briefcase,
+  Calendar,
+  Clock,
+  Trash2,
+  Edit3,
   ArrowLeft,
   Package,
   DollarSign,
@@ -190,7 +190,7 @@ export default function JobViewPage() {
                   <FileText className="w-6 h-6 text-green-600" />
                   Invoice Reminder Details
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-gray-600 font-medium">Invoice Start Date</label>
@@ -198,14 +198,14 @@ export default function JobViewPage() {
                       {formatDate(job.invoiceReminder.startDate)}
                     </p>
                   </div>
-                  
+
                   <div>
                     <label className="text-sm text-gray-600 font-medium">Invoice End Date</label>
                     <p className="text-lg font-semibold text-gray-900 mt-1">
                       {formatDate(job.invoiceReminder.endDate)}
                     </p>
                   </div>
-                  
+
                   <div>
                     <label className="text-sm text-gray-600 font-medium">Billing Frequency</label>
                     <p className="text-lg font-semibold text-gray-900 mt-1 capitalize">
@@ -222,7 +222,7 @@ export default function JobViewPage() {
                       )}
                       <span className="text-sm text-gray-700">Advance Invoice</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       {job.invoiceReminder.invoiceAfterJobsClosed ? (
                         <CheckCircle className="w-5 h-5 text-green-600" />
@@ -274,7 +274,7 @@ export default function JobViewPage() {
                             AED {service.rate.toFixed(2)}
                           </span>
                         </div>
-                        
+
                         <div className="bg-white rounded-lg p-3 border border-gray-200">
                           <div className="flex items-center gap-2 mb-1">
                             <Package className="w-4 h-4 text-blue-600" />
@@ -291,7 +291,10 @@ export default function JobViewPage() {
                             <span className="text-xs text-gray-600">Frequency</span>
                           </div>
                           <span className="font-semibold text-gray-900">
-                            {service.isEveryDay ? 'Daily' : `Every ${service.frequencyDays} days`}
+                            {service.isEveryDay
+                              ? 'Daily'
+                              : `Every ${service.frequencyDays} ${service.frequencyUnit}${service.frequencyDays > 1 ? 's' : ''}`
+                            }
                           </span>
                         </div>
 
@@ -316,7 +319,7 @@ export default function JobViewPage() {
                   <DollarSign className="w-6 h-6 text-blue-600" />
                   Financial Summary
                 </h3>
-                
+
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-3 border-b border-gray-200">
                     <span className="text-gray-700 font-medium">Subtotal:</span>
@@ -324,7 +327,7 @@ export default function JobViewPage() {
                       AED {job.subtotal.toFixed(2)}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center py-3 border-b border-gray-200">
                     <span className="text-gray-700 font-medium">
                       VAT (5%):
@@ -338,7 +341,7 @@ export default function JobViewPage() {
                       AED {job.vat.toFixed(2)}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center py-4 bg-gradient-to-r from-blue-100 to-indigo-100 px-6 rounded-lg">
                     <span className="text-lg font-bold text-gray-900">Grand Total:</span>
                     <span className="text-3xl font-bold text-blue-600">

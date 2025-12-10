@@ -63,7 +63,15 @@ export const Layout = () => {
                 <p className="text-sm font-semibold">John Doe</p>
                 <p className="text-xs text-blue-200">Administrator</p>
               </div>
-              <button className="bg-blue-700 hover:bg-blue-800 p-2 rounded-lg transition">
+              <button
+                onClick={() => {
+                  localStorage.removeItem("token");
+                  localStorage.removeItem("user");
+                  window.location.href = "/login";
+                }}
+                className="bg-blue-700 hover:bg-blue-800 p-2 rounded-lg transition"
+                title="Logout"
+              >
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
@@ -82,8 +90,8 @@ export const Layout = () => {
               key={index}
               to={item.path}
               className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition ${location.pathname === item.path
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "text-gray-700 hover:bg-blue-50"
+                ? "bg-blue-600 text-white shadow-md"
+                : "text-gray-700 hover:bg-blue-50"
                 }`}
             >
               <item.icon className="w-5 h-5" />

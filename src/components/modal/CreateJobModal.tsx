@@ -12,19 +12,46 @@ interface JobModalProps {
   mode: "create" | "edit";
 }
 
-export default function JobModal({ 
-  isOpen, 
-  onClose, 
-  contractId, 
+export default function JobModal({
+  isOpen,
+  onClose,
+  contractId,
   job = null,
   mode = "create"
 }: JobModalProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    jobType: string;
+    contractDate: string;
+    startDate: string;
+    endDate: string;
+    contractedBy: string;
+    dayType: string;
+    expiryRemindBefore: number;
+    isTaxExempt: boolean;
+    invoiceReminder: {
+      startDate: string;
+      endDate: string;
+      isAdvanceInvoice: boolean;
+      invoiceAfterJobsClosed: boolean;
+      billingFrequency: string;
+    };
+    servicesProducts: Array<{
+      serviceType: string;
+      instructions: string;
+      units: number;
+      rate: number;
+      subtotalPerYear: number;
+      frequencyDays: number;
+      frequencyUnit: "day" | "week" | "month" | "year";
+      isEveryDay: boolean;
+    }>;
+  }>({
     jobType: "recurring",
     contractDate: "",
     startDate: "",
     endDate: "",
     contractedBy: "",
+    dayType: "day",
     expiryRemindBefore: 30,
     isTaxExempt: false,
     invoiceReminder: {
@@ -41,7 +68,8 @@ export default function JobModal({
         units: 1,
         rate: 0,
         subtotalPerYear: 0,
-        frequencyDays: 30,
+        frequencyDays: 1,
+        frequencyUnit: "month",
         isEveryDay: false,
       },
     ],
@@ -85,6 +113,7 @@ export default function JobModal({
         startDate: job.startDate.split("T")[0],
         endDate: job.endDate.split("T")[0],
         contractedBy: job.contractedBy,
+        dayType: job.dayType,
         expiryRemindBefore: job.expiryRemindBefore,
         isTaxExempt: job.isTaxExempt,
         invoiceReminder: {
@@ -104,6 +133,7 @@ export default function JobModal({
         startDate: "",
         endDate: "",
         contractedBy: "",
+        dayType: "day",
         expiryRemindBefore: 30,
         isTaxExempt: false,
         invoiceReminder: {
@@ -120,7 +150,8 @@ export default function JobModal({
             units: 1,
             rate: 0,
             subtotalPerYear: 0,
-            frequencyDays: 30,
+            frequencyDays: 1,
+            frequencyUnit: "month",
             isEveryDay: false,
           },
         ],
@@ -146,10 +177,37 @@ export default function JobModal({
     const updated = [...formData.servicesProducts];
     updated[index] = { ...updated[index], [field]: value };
 
-    // Auto-calculate subtotal per year
-    if (field === "units" || field === "rate") {
+    // Auto-calculate subtotal per year based on frequency
+    if (field === "units" || field === "rate" || field === "frequencyDays" || field === "frequencyUnit" || field === "isEveryDay") {
+      const service = updated[index];
+      let occurrencesPerYear;
+
+      if (service.isEveryDay) {
+        // Every day checked: 365 ÷ frequency (in days)
+        occurrencesPerYear = Math.floor(365 / (service.frequencyDays || 1));
+      } else {
+        // Every day NOT checked: multiply by frequency and yearly multiplier
+        const freq = service.frequencyDays || 1;
+
+        if (service.frequencyUnit === "day") {
+          // For days: 365 ÷ frequency
+          occurrencesPerYear = Math.floor(365 / freq);
+        } else if (service.frequencyUnit === "week") {
+          // For weeks: frequency × 52
+          occurrencesPerYear = freq * 52;
+        } else if (service.frequencyUnit === "month") {
+          // For months: frequency × 12
+          occurrencesPerYear = freq * 12;
+        } else if (service.frequencyUnit === "year") {
+          // For years: frequency × 1
+          occurrencesPerYear = freq * 1;
+        } else {
+          occurrencesPerYear = 12; // default
+        }
+      }
+
       updated[index].subtotalPerYear =
-        updated[index].units * updated[index].rate;
+        service.units * service.rate * occurrencesPerYear;
     }
 
     setFormData({ ...formData, servicesProducts: updated });
@@ -167,7 +225,8 @@ export default function JobModal({
           units: 1,
           rate: 0,
           subtotalPerYear: 0,
-          frequencyDays: 30,
+          frequencyDays: 1,
+          frequencyUnit: "month",
           isEveryDay: false,
         },
       ],
@@ -317,6 +376,22 @@ export default function JobModal({
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Day Type *
+                </label>
+                <select
+                  value={formData.dayType}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dayType: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="day">Day</option>
+                  <option value="night">Night</option>
+                </select>
               </div>
 
               <div>
@@ -588,7 +663,7 @@ export default function JobModal({
 
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Frequency (Days)
+                          Frequency
                         </label>
                         <input
                           type="number"
@@ -603,6 +678,24 @@ export default function JobModal({
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                           min="1"
                         />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Unit *
+                        </label>
+                        <select
+                          value={service.frequencyUnit}
+                          onChange={(e) =>
+                            updateService(index, "frequencyUnit", e.target.value)
+                          }
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="day">Day</option>
+                          <option value="week">Week</option>
+                          <option value="month">Month</option>
+                          <option value="year">Year</option>
+                        </select>
                       </div>
 
                       <label className="flex items-center space-x-2 cursor-pointer">
@@ -627,11 +720,11 @@ export default function JobModal({
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border-2 border-blue-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <DollarSign className="w-5 h-5 mr-2 text-blue-600" />
-              Contract Summary
+              Contract Summary (1 Year)
             </h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                <span className="text-gray-700 font-medium">Subtotal:</span>
+                <span className="text-gray-700 font-medium">Subtotal (1 Year):</span>
                 <span className="text-xl font-bold text-gray-900">
                   AED {subtotal.toFixed(2)}
                 </span>
@@ -651,7 +744,7 @@ export default function JobModal({
               </div>
               <div className="flex justify-between items-center py-3 bg-blue-100 px-4 rounded-lg">
                 <span className="text-lg font-bold text-gray-900">
-                  Grand Total:
+                  Grand Total (1 Year):
                 </span>
                 <span className="text-2xl font-bold text-blue-600">
                   AED {grandTotal.toFixed(2)}
