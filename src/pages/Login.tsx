@@ -17,7 +17,7 @@ export default function Login() {
       const res = await api.post("/auth/login", { email, password });
 
       localStorage.setItem("token", res.data.token);
-
+      localStorage.setItem("user", JSON.stringify(res.data.user));
       window.location.href = "/";
     } catch (err) {
       const axiosErr = err as AxiosError<{ error?: { message?: string } }>;

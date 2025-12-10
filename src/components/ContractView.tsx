@@ -121,8 +121,12 @@ export default function ContractView() {
                   </div>
                   <p className="text-gray-600 text-lg">{contract.aliasName}</p>
                   <p className="text-gray-500 text-sm mt-2">
-                    Contract ID: {contract._id}
-                  </p>
+  Contract No:{" "}
+  <span className="font-semibold text-gray-700">
+    {contract.contractNumber}
+  </span>
+</p>
+
                 </div>
 
                 <div className="flex space-x-3">

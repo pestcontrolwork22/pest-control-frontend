@@ -105,14 +105,14 @@ export const CalendarView = () => {
     const eventStyleGetter = (event: CalendarEvent) => {
         const status = event.resource.job.status;
 
-        let backgroundColor = "#3b82f6";
+        let backgroundColor = "#f59e0b";
 
-        if (status === "completed") {
-            backgroundColor = "#10b981";
-        } else if (status === "cancelled") {
-            backgroundColor = "#ef4444";
-        } else if (status === "pending") {
-            backgroundColor = "#3b82f6";
+        if (status === "work done") {
+            backgroundColor = "#10b981"; // Green
+        } else if (status === "work informed") {
+            backgroundColor = "#3b82f6"; // Blue
+        } else if (status === "work pending") {
+            backgroundColor = "#f59e0b"; // Orange
         }
 
         return {
@@ -186,8 +186,8 @@ export const CalendarView = () => {
                         <button
                             onClick={() => onView("month")}
                             className={`px-4 py-2 rounded-md transition font-medium ${view === "month"
-                                    ? "bg-white text-blue-600 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-gray-600 hover:text-gray-900"
                                 }`}
                         >
                             Month
@@ -195,8 +195,8 @@ export const CalendarView = () => {
                         <button
                             onClick={() => onView("week")}
                             className={`px-4 py-2 rounded-md transition font-medium ${view === "week"
-                                    ? "bg-white text-blue-600 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-gray-600 hover:text-gray-900"
                                 }`}
                         >
                             Week
@@ -204,8 +204,8 @@ export const CalendarView = () => {
                         <button
                             onClick={() => onView("day")}
                             className={`px-4 py-2 rounded-md transition font-medium ${view === "day"
-                                    ? "bg-white text-blue-600 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-gray-600 hover:text-gray-900"
                                 }`}
                         >
                             Day
@@ -213,8 +213,8 @@ export const CalendarView = () => {
                         <button
                             onClick={() => onView("agenda")}
                             className={`px-4 py-2 rounded-md transition font-medium ${view === "agenda"
-                                    ? "bg-white text-blue-600 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-gray-600 hover:text-gray-900"
                                 }`}
                         >
                             Agenda
@@ -249,16 +249,16 @@ export const CalendarView = () => {
                 </h3>
                 <div className="flex flex-wrap gap-4">
                     <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 rounded bg-[#3b82f6]"></div>
-                        <span className="text-sm text-gray-600">Pending</span>
+                        <div className="w-4 h-4 rounded bg-[#f59e0b]"></div>
+                        <span className="text-sm text-gray-600">Work Pending</span>
                     </div>
                     <div className="flex items-center space-x-2">
                         <div className="w-4 h-4 rounded bg-[#10b981]"></div>
-                        <span className="text-sm text-gray-600">Completed</span>
+                        <span className="text-sm text-gray-600">Work Done</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 rounded bg-[#ef4444]"></div>
-                        <span className="text-sm text-gray-600">Cancelled</span>
+                        <div className="w-4 h-4 rounded bg-[#3b82f6]"></div>
+                        <span className="text-sm text-gray-600">Work Informed</span>
                     </div>
                 </div>
             </div>
