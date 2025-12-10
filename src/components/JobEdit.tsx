@@ -124,6 +124,7 @@ export default function JobEditPage() {
           subtotalPerYear: 0,
           frequencyDays: 30,
           isEveryDay: false,
+          frequencyUnit: "day",
         },
       ],
     });
