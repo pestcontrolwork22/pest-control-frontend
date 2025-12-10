@@ -1,3 +1,4 @@
+import { Contract } from "@/types/contract";
 import { X } from "lucide-react";
 import { useState } from "react";
 
@@ -5,10 +6,11 @@ export const AddContractModal = ({
   onClose,
   onSubmit,
   initialData = null,
+  isEdit = false,
 }: {
   onClose: () => void;
   onSubmit: (data: any) => void;
-  initialData?: any;
+  initialData?: Contract | null;
   isEdit?: boolean;
 }) => {
   const [formData, setFormData] = useState(
@@ -106,7 +108,7 @@ export const AddContractModal = ({
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-blue-600 text-white px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-          <h2 className="text-2xl font-bold">Add New Contract</h2>
+          <h2 className="text-2xl font-bold">{isEdit ? `Edit Contract: ${initialData?.contractNumber}` : "Add New Contract"}</h2>
           <button
             onClick={onClose}
             className="hover:bg-blue-700 p-2 rounded-lg transition"

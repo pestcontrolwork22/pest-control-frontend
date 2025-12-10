@@ -54,6 +54,7 @@ export interface Job {
   vat: number;
   grandTotal: number;
   _id: string;
+  status: "pending" | "completed" | "cancelled";
   createdAt: string;
   updatedAt: string;
 }
