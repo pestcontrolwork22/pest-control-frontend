@@ -10,15 +10,16 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { Outlet } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
 
 export const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
   const menuItems = [
     { icon: Home, label: "Dashboard", path: "/" },
     { icon: FileText, label: "Contracts", path: "/contracts" },
-    { icon: Calendar, label: "Schedules", path: "/schedules" },
+    { icon: Calendar, label: "Calendar", path: "/calendar" },
     { icon: Users, label: "Clients", path: "/clients" },
     { icon: ClipboardList, label: "Services", path: "/services" },
     { icon: Settings, label: "Settings", path: "/settings" },
@@ -72,24 +73,22 @@ export const Layout = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-20 h-full bg-white shadow-xl z-20 transition-transform duration-300 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 w-64`}
+        className={`fixed left-0 top-20 h-full bg-white shadow-xl z-20 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          } lg:translate-x-0 w-64`}
       >
         <nav className="p-4 space-y-2">
           {menuItems.map((item, index) => (
-            <a
+            <Link
               key={index}
-              href={item.path}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition ${
-                location.pathname === item.path
+              to={item.path}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition ${location.pathname === item.path
                   ? "bg-blue-600 text-white shadow-md"
                   : "text-gray-700 hover:bg-blue-50"
-              }`}
+                }`}
             >
               <item.icon className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>
-            </a>
+            </Link>
           ))}
         </nav>
       </aside>
