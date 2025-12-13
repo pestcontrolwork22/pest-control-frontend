@@ -170,6 +170,22 @@ const contractSlice = createSlice({
             state.single.jobs[jobIndex] = action.payload;
           }
         }
+
+        // Update job in the contracts list (items)
+        const contractIndex = state.items.findIndex(
+          (c) => c._id === action.meta.arg.contractId
+        );
+        if (contractIndex !== -1) {
+          const contract = state.items[contractIndex];
+          if (contract.jobs) {
+            const jobIndex = contract.jobs.findIndex(
+              (j) => j._id === action.payload._id
+            );
+            if (jobIndex !== -1) {
+              contract.jobs[jobIndex] = action.payload;
+            }
+          }
+        }
       })
       .addCase(updateJobForContract.rejected, (state, action) => {
         state.loading = false;

@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Calendar, dateFnsLocalizer, View } from "react-big-calendar";
+import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import "./calendar-styles.css";
 import {
     Calendar as CalendarIcon,
@@ -14,9 +16,11 @@ import {
     MapPin,
     Phone,
     Mail,
+    Sun,
+    Moon,
 } from "lucide-react";
 import { RootState, AppDispatch } from "@/store";
-import { fetchContracts } from "@/store/contract/thunk";
+import { fetchContracts, updateJobForContract } from "@/store/contract/thunk";
 import { Job } from "@/types/contract";
 import { useNavigate } from "react-router-dom";
 
@@ -32,6 +36,8 @@ const localizer = dateFnsLocalizer({
     getDay,
     locales,
 });
+
+const DnDCalendar = withDragAndDrop(Calendar) as any;
 
 // Custom event interface for the calendar
 interface CalendarEvent {
@@ -50,6 +56,7 @@ interface CalendarEvent {
     };
 }
 
+
 export const CalendarView = () => {
     const dispatch = useDispatch<AppDispatch>();
     const navigate = useNavigate();
@@ -62,6 +69,7 @@ export const CalendarView = () => {
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
         null
     );
+    const [dayNightFilter, setDayNightFilter] = useState<'all' | 'day' | 'night'>('all');
 
     useEffect(() => {
         dispatch(
@@ -79,6 +87,10 @@ export const CalendarView = () => {
         contracts.forEach((contract) => {
             if (contract.jobs && contract.jobs.length > 0) {
                 contract.jobs.forEach((job) => {
+                    if (dayNightFilter !== 'all' && job.dayType !== dayNightFilter) {
+                        return;
+                    }
+
                     const startDate = new Date(job.startDate);
                     calendarEvents.push({
                         id: `${contract._id}-${job._id}`,
@@ -100,7 +112,7 @@ export const CalendarView = () => {
         });
 
         return calendarEvents;
-    }, [contracts]);
+    }, [contracts, dayNightFilter]);
 
     const eventStyleGetter = (event: CalendarEvent) => {
         const status = event.resource.job.status;
@@ -134,6 +146,35 @@ export const CalendarView = () => {
         setSelectedEvent(event);
     };
 
+    const handleEventDrop = async ({ event, start }: any) => {
+        const { contractId, job } = event.resource;
+
+        const originalStart = new Date(job.startDate).getTime();
+        const originalEnd = new Date(job.endDate).getTime();
+        const duration = originalEnd - originalStart;
+
+        const newStartDateObj = new Date(start);
+        const newEndDateObj = new Date(newStartDateObj.getTime() + duration);
+
+        const newStartDate = newStartDateObj.toISOString();
+        const newEndDate = newEndDateObj.toISOString();
+
+        try {
+            await dispatch(
+                updateJobForContract({
+                    contractId,
+                    jobId: job._id,
+                    updates: {
+                        startDate: newStartDate,
+                        endDate: newEndDate,
+                    },
+                })
+            ).unwrap();
+        } catch (error) {
+            console.error("Failed to update job date:", error);
+        }
+    };
+
     const handleNavigate = (newDate: Date) => {
         setDate(newDate);
     };
@@ -153,72 +194,133 @@ export const CalendarView = () => {
     const CustomToolbar = ({ label, onNavigate, onView }: any) => {
         return (
             <div className="bg-white rounded-t-xl px-6 py-4 border-b border-gray-200">
-                <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
                     {/* Navigation */}
-                    <div className="flex items-center space-x-3">
-                        <button
-                            onClick={() => onNavigate("PREV")}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition"
-                            title="Previous"
-                        >
-                            <ChevronLeft className="w-5 h-5 text-gray-700" />
-                        </button>
-                        <button
-                            onClick={() => onNavigate("TODAY")}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-                        >
-                            Today
-                        </button>
-                        <button
-                            onClick={() => onNavigate("NEXT")}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition"
-                            title="Next"
-                        >
-                            <ChevronRight className="w-5 h-5 text-gray-700" />
-                        </button>
+                    <div className="flex items-center w-full lg:w-auto justify-between lg:justify-start space-x-3">
+                        <div className="flex items-center space-x-2">
+                            <button
+                                onClick={() => onNavigate("PREV")}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                                title="Previous"
+                            >
+                                <ChevronLeft className="w-5 h-5 text-gray-700" />
+                            </button>
+                            <button
+                                onClick={() => onNavigate("TODAY")}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
+                            >
+                                Today
+                            </button>
+                            <button
+                                onClick={() => onNavigate("NEXT")}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                                title="Next"
+                            >
+                                <ChevronRight className="w-5 h-5 text-gray-700" />
+                            </button>
+                        </div>
+                        {/* Mobile Day/Night Filter */}
+                        <div className="flex lg:hidden bg-gray-100 rounded-lg p-1">
+                            <button
+                                onClick={() => setDayNightFilter('all')}
+                                className={`p-2 rounded-md transition ${dayNightFilter === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                                title="All"
+                            >
+                                <span className="text-xs font-bold">ALL</span>
+                            </button>
+                            <button
+                                onClick={() => setDayNightFilter('day')}
+                                className={`p-2 rounded-md transition ${dayNightFilter === 'day' ? 'bg-white text-amber-500 shadow-sm' : 'text-gray-500'}`}
+                                title="Day"
+                            >
+                                <Sun className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() => setDayNightFilter('night')}
+                                className={`p-2 rounded-md transition ${dayNightFilter === 'night' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}
+                                title="Night"
+                            >
+                                <Moon className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Current Date Label */}
-                    <h2 className="text-2xl font-bold text-gray-800">{label}</h2>
+                    <h2 className="text-xl lg:text-2xl font-bold text-gray-800">{label}</h2>
 
-                    {/* View Switcher */}
-                    <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-                        <button
-                            onClick={() => onView("month")}
-                            className={`px-4 py-2 rounded-md transition font-medium ${view === "month"
-                                ? "bg-white text-blue-600 shadow-sm"
-                                : "text-gray-600 hover:text-gray-900"
-                                }`}
-                        >
-                            Month
-                        </button>
-                        <button
-                            onClick={() => onView("week")}
-                            className={`px-4 py-2 rounded-md transition font-medium ${view === "week"
-                                ? "bg-white text-blue-600 shadow-sm"
-                                : "text-gray-600 hover:text-gray-900"
-                                }`}
-                        >
-                            Week
-                        </button>
-                        <button
-                            onClick={() => onView("day")}
-                            className={`px-4 py-2 rounded-md transition font-medium ${view === "day"
-                                ? "bg-white text-blue-600 shadow-sm"
-                                : "text-gray-600 hover:text-gray-900"
-                                }`}
-                        >
-                            Day
-                        </button>
-                        <button
-                            onClick={() => onView("agenda")}
-                            className={`px-4 py-2 rounded-md transition font-medium ${view === "agenda"
-                                ? "bg-white text-blue-600 shadow-sm"
-                                : "text-gray-600 hover:text-gray-900"
-                                }`}
-                        >
-                            Agenda
-                        </button>
+                    <div className="flex items-center gap-4">
+                        {/* Desktop Day/Night Filter */}
+                        <div className="hidden lg:flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+                            <button
+                                onClick={() => setDayNightFilter('all')}
+                                className={`px-3 py-2 rounded-md transition font-medium text-sm ${dayNightFilter === 'all'
+                                    ? "bg-white text-gray-800 shadow-sm"
+                                    : "text-gray-600 hover:text-gray-900"
+                                    }`}
+                            >
+                                All Time
+                            </button>
+                            <button
+                                onClick={() => setDayNightFilter('day')}
+                                className={`px-3 py-2 rounded-md transition font-medium text-sm flex items-center space-x-1 ${dayNightFilter === 'day'
+                                    ? "bg-white text-amber-600 shadow-sm"
+                                    : "text-gray-600 hover:text-gray-900"
+                                    }`}
+                            >
+                                <Sun className="w-4 h-4" />
+                                <span>Day</span>
+                            </button>
+                            <button
+                                onClick={() => setDayNightFilter('night')}
+                                className={`px-3 py-2 rounded-md transition font-medium text-sm flex items-center space-x-1 ${dayNightFilter === 'night'
+                                    ? "bg-white text-indigo-600 shadow-sm"
+                                    : "text-gray-600 hover:text-gray-900"
+                                    }`}
+                            >
+                                <Moon className="w-4 h-4" />
+                                <span>Night</span>
+                            </button>
+                        </div>
+
+                        {/* View Switcher */}
+                        <div className="hidden lg:flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+                            <button
+                                onClick={() => onView("month")}
+                                className={`px-4 py-2 rounded-md transition font-medium text-sm ${view === "month"
+                                    ? "bg-white text-blue-600 shadow-sm"
+                                    : "text-gray-600 hover:text-gray-900"
+                                    }`}
+                            >
+                                Month
+                            </button>
+                            <button
+                                onClick={() => onView("week")}
+                                className={`px-4 py-2 rounded-md transition font-medium text-sm ${view === "week"
+                                    ? "bg-white text-blue-600 shadow-sm"
+                                    : "text-gray-600 hover:text-gray-900"
+                                    }`}
+                            >
+                                Week
+                            </button>
+                            <button
+                                onClick={() => onView("day")}
+                                className={`px-4 py-2 rounded-md transition font-medium text-sm ${view === "day"
+                                    ? "bg-white text-blue-600 shadow-sm"
+                                    : "text-gray-600 hover:text-gray-900"
+                                    }`}
+                            >
+                                Day
+                            </button>
+                            <button
+                                onClick={() => onView("agenda")}
+                                className={`px-4 py-2 rounded-md transition font-medium text-sm ${view === "agenda"
+                                    ? "bg-white text-blue-600 shadow-sm"
+                                    : "text-gray-600 hover:text-gray-900"
+                                    }`}
+                            >
+                                Agenda
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -265,7 +367,7 @@ export const CalendarView = () => {
 
             {/* Calendar */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <Calendar
+                <DnDCalendar
                     localizer={localizer}
                     events={events}
                     startAccessor="start"
@@ -276,12 +378,14 @@ export const CalendarView = () => {
                     date={date}
                     onNavigate={handleNavigate}
                     onSelectEvent={handleSelectEvent}
+                    onEventDrop={handleEventDrop}
                     eventPropGetter={eventStyleGetter}
                     components={{
                         toolbar: CustomToolbar,
                     }}
                     popup
                     selectable
+                    resizable
                 />
             </div>
 

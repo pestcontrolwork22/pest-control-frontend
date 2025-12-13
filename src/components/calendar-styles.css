@@ -44,7 +44,7 @@
   letter-spacing: 0.05em;
 }
 
-.rbc-header + .rbc-header {
+.rbc-header+.rbc-header {
   border-left: 1px solid #e5e7eb;
 }
 
@@ -91,7 +91,9 @@
 
 /* Selected event */
 .rbc-selected {
-  background-color: #1e40af !important;
+  /* background-color: #1e40af !important; */
+  opacity: 1 !important;
+  /* Optional: make it fully opaque when selected */
 }
 
 /* Show more link */
@@ -166,11 +168,11 @@
   padding: 12px;
 }
 
-.rbc-agenda-table tbody > tr > td {
+.rbc-agenda-table tbody>tr>td {
   border-top: 1px solid #e5e7eb;
 }
 
-.rbc-agenda-table tbody > tr:hover {
+.rbc-agenda-table tbody>tr:hover {
   background-color: #f9fafb;
 }
 
@@ -242,6 +244,7 @@
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
