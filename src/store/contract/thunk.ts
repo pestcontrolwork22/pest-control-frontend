@@ -84,6 +84,8 @@ interface JobPayload {
   startDate: string;
   endDate: string;
   contractedBy: string;
+  dayType: string;
+  status?: string;
   expiryRemindBefore: number;
   isTaxExempt: boolean;
   invoiceReminder: InvoiceReminder;

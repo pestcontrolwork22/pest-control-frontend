@@ -113,7 +113,7 @@ export default function JobModal({
         startDate: job.startDate.split("T")[0],
         endDate: job.endDate.split("T")[0],
         contractedBy: job.contractedBy,
-        dayType: job.dayType,
+        dayType: job.dayType || "day",
         expiryRemindBefore: job.expiryRemindBefore,
         isTaxExempt: job.isTaxExempt,
         invoiceReminder: {
@@ -123,7 +123,10 @@ export default function JobModal({
           invoiceAfterJobsClosed: job.invoiceReminder.invoiceAfterJobsClosed,
           billingFrequency: job.invoiceReminder.billingFrequency,
         },
-        servicesProducts: job.servicesProducts,
+        servicesProducts: job.servicesProducts.map(s => ({
+          ...s,
+          frequencyUnit: s.frequencyUnit || "month"
+        })),
       });
     } else if (mode === "create") {
       // Reset form for create mode
@@ -246,6 +249,12 @@ export default function JobModal({
     try {
       const jobData = {
         ...formData,
+        dayType: formData.dayType || "day",
+        status: "work pending",
+        servicesProducts: formData.servicesProducts.map((s) => ({
+          ...s,
+          frequencyUnit: s.frequencyUnit || "month",
+        })),
         subtotal,
         vat,
         grandTotal,
