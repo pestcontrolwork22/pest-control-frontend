@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAppDispatch } from "@/hooks/useDispatch";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
-import { deleteJobForContract, fetchJobById } from "@/store/contract/thunk";
+import { deleteJobForContract, fetchJobById, updateJobForContract } from "@/store/contract/thunk";
 import {
   Briefcase,
   Calendar,
@@ -43,6 +43,21 @@ export default function JobViewPage() {
       } catch (error) {
         console.error("Failed to delete job:", error);
       }
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!job || !contractId) return;
+    try {
+      await dispatch(
+        updateJobForContract({
+          contractId,
+          jobId: job._id,
+          updates: { status: newStatus },
+        })
+      ).unwrap();
+    } catch (error) {
+      console.error("Failed to update job status:", error);
     }
   };
 
@@ -116,6 +131,53 @@ export default function JobViewPage() {
 
             {/* Content Section */}
             <div className="p-8">
+              {/* Status Section */}
+              <div className="mb-8 bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`p-3 rounded-full ${job.status === "work done"
+                          ? "bg-green-100 text-green-600"
+                          : job.status === "work informed"
+                            ? "bg-blue-100 text-blue-600"
+                            : "bg-amber-100 text-amber-600"
+                        }`}
+                    >
+                      {job.status === "work done" ? (
+                        <CheckCircle className="w-6 h-6" />
+                      ) : job.status === "work informed" ? (
+                        <CheckCircle className="w-6 h-6" />
+                      ) : (
+                        <Clock className="w-6 h-6" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        Current Status
+                      </h3>
+                      <p className="text-gray-500 text-sm">
+                        Update the job status to track progress
+                      </p>
+                    </div>
+                  </div>
+
+                  <select
+                    value={job.status}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    className={`w-full sm:w-auto px-4 py-2 rounded-lg border-2 font-semibold outline-none cursor-pointer transition-colors ${job.status === "work done"
+                        ? "border-green-200 bg-green-50 text-green-700 focus:border-green-500"
+                        : job.status === "work informed"
+                          ? "border-blue-200 bg-blue-50 text-blue-700 focus:border-blue-500"
+                          : "border-amber-200 bg-amber-50 text-amber-700 focus:border-amber-500"
+                      }`}
+                  >
+                    <option value="work pending">Work Pending</option>
+                    <option value="work informed">Work Informed</option>
+                    <option value="work done">Work Done</option>
+                  </select>
+                </div>
+              </div>
+
               {/* Basic Info Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
