@@ -11,6 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { AddContractModal } from "./modal/AddContractModal";
+import { Pagination } from "./common/Pagination";
 import type { RootState, AppDispatch } from "@/store";
 import {
   createContract,
@@ -40,7 +41,7 @@ export const Contracts = () => {
     dispatch(
       fetchContracts({
         page: currentPage,
-        limit: 10,
+        limit: 5,
         search: searchTerm,
       })
     );
@@ -252,32 +253,14 @@ export const Contracts = () => {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="mt-6 flex justify-between items-center">
-              <p className="text-sm text-gray-600">
-                Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-                {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
-                of {pagination.total} contracts
-              </p>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={pagination.page === 1}
-                  className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() =>
-                    setCurrentPage((p) =>
-                      Math.min(pagination.totalPages, p + 1)
-                    )
-                  }
-                  disabled={pagination.page === pagination.totalPages}
-                  className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Next
-                </button>
-              </div>
+            <div className="mt-6 border-t border-gray-100">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={pagination.total}
+                itemsPerPage={pagination.limit}
+              />
             </div>
           )}
         </>

@@ -175,6 +175,40 @@ export const CalendarView = () => {
         }
     };
 
+    const handleStatusChange = async (newStatus: string) => {
+        if (!selectedEvent) return;
+
+        const { contractId, job } = selectedEvent.resource;
+
+        try {
+            await dispatch(
+                updateJobForContract({
+                    contractId,
+                    jobId: job._id,
+                    updates: {
+                        status: newStatus,
+                    },
+                })
+            ).unwrap();
+
+            setSelectedEvent((prev) => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    resource: {
+                        ...prev.resource,
+                        job: {
+                            ...prev.resource.job,
+                            status: newStatus as any,
+                        },
+                    },
+                };
+            });
+        } catch (error) {
+            console.error("Failed to update job status:", error);
+        }
+    };
+
     const handleNavigate = (newDate: Date) => {
         setDate(newDate);
     };
@@ -426,29 +460,59 @@ export const CalendarView = () => {
 
                         {/* Modal Body */}
                         <div className="p-6 space-y-6">
-                            {/* Contract Info */}
-                            <div className="bg-gray-50 rounded-xl p-4">
-                                <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-                                    Contract Details
-                                </h3>
-                                <div className="space-y-2">
-                                    <div className="flex items-center space-x-2 text-gray-700">
-                                        <Briefcase className="w-4 h-4 text-blue-600" />
-                                        <span className="font-medium">
-                                            {selectedEvent.resource.contractTitle}
-                                        </span>
+                            {/* Status and Contract Info Row */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Contract Info */}
+                                <div className="bg-gray-50 rounded-xl p-4">
+                                    <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+                                        Contract Details
+                                    </h3>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center space-x-2 text-gray-700">
+                                            <Briefcase className="w-4 h-4 text-blue-600" />
+                                            <span className="font-medium">
+                                                {selectedEvent.resource.contractTitle}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center space-x-2 text-gray-600">
+                                            <Mail className="w-4 h-4 text-blue-600" />
+                                            <span>{selectedEvent.resource.email}</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2 text-gray-600">
+                                            <Phone className="w-4 h-4 text-blue-600" />
+                                            <span>{selectedEvent.resource.phone}</span>
+                                        </div>
+                                        <div className="flex items-center space-x-2 text-gray-600">
+                                            <MapPin className="w-4 h-4 text-blue-600" />
+                                            <span>{selectedEvent.resource.address}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center space-x-2 text-gray-600">
-                                        <Mail className="w-4 h-4 text-blue-600" />
-                                        <span>{selectedEvent.resource.email}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2 text-gray-600">
-                                        <Phone className="w-4 h-4 text-blue-600" />
-                                        <span>{selectedEvent.resource.phone}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2 text-gray-600">
-                                        <MapPin className="w-4 h-4 text-blue-600" />
-                                        <span>{selectedEvent.resource.address}</span>
+                                </div>
+
+                                {/* Status Update */}
+                                <div className="bg-white border rounded-xl p-4 shadow-sm">
+                                    <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+                                        Job Status
+                                    </h3>
+                                    <div className="space-y-3">
+                                        <select
+                                            value={selectedEvent.resource.job.status}
+                                            onChange={(e) => handleStatusChange(e.target.value)}
+                                            className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-medium ${selectedEvent.resource.job.status === "work done"
+                                                ? "bg-green-50 text-green-700 border-green-200"
+                                                : selectedEvent.resource.job.status ===
+                                                    "work informed"
+                                                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                                                    : "bg-amber-50 text-amber-700 border-amber-200"
+                                                }`}
+                                        >
+                                            <option value="work pending">Work Pending</option>
+                                            <option value="work informed">Work Informed</option>
+                                            <option value="work done">Work Done</option>
+                                        </select>
+                                        <p className="text-xs text-gray-500">
+                                            Update the status to reflect current progress.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
