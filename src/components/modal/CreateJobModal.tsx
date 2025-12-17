@@ -26,7 +26,7 @@ export default function JobModal({
     endDate: string;
     contractedBy: string;
     dayType: string;
-    expiryRemindBefore: number;
+    expiryRemindBefore: number | string;
     isTaxExempt: boolean;
     invoiceReminder: {
       startDate: string;
@@ -38,10 +38,10 @@ export default function JobModal({
     servicesProducts: Array<{
       serviceType: string;
       instructions: string;
-      units: number;
-      rate: number;
+      units: number | string;
+      rate: number | string;
       subtotalPerYear: number;
-      frequencyDays: number;
+      frequencyDays: number | string;
       frequencyUnit: "day" | "week" | "month" | "year";
       isEveryDay: boolean;
     }>;
@@ -183,14 +183,17 @@ export default function JobModal({
     // Auto-calculate subtotal per year based on frequency
     if (field === "units" || field === "rate" || field === "frequencyDays" || field === "frequencyUnit" || field === "isEveryDay") {
       const service = updated[index];
+      const units = Number(service.units) || 0;
+      const rate = Number(service.rate) || 0;
+      const freq = Number(service.frequencyDays) || 1;
+
       let occurrencesPerYear;
 
       if (service.isEveryDay) {
         // Every day checked: 365 ÷ frequency (in days)
-        occurrencesPerYear = Math.floor(365 / (service.frequencyDays || 1));
+        occurrencesPerYear = Math.floor(365 / freq);
       } else {
         // Every day NOT checked: multiply by frequency and yearly multiplier
-        const freq = service.frequencyDays || 1;
 
         if (service.frequencyUnit === "day") {
           // For days: 365 ÷ frequency
@@ -210,7 +213,7 @@ export default function JobModal({
       }
 
       updated[index].subtotalPerYear =
-        service.units * service.rate * occurrencesPerYear;
+        units * rate * occurrencesPerYear;
     }
 
     setFormData({ ...formData, servicesProducts: updated });
@@ -250,9 +253,13 @@ export default function JobModal({
       const jobData = {
         ...formData,
         dayType: formData.dayType || "day",
+        expiryRemindBefore: Number(formData.expiryRemindBefore) || 0,
         status: "work pending",
         servicesProducts: formData.servicesProducts.map((s) => ({
           ...s,
+          units: Number(s.units) || 0,
+          rate: Number(s.rate) || 0,
+          frequencyDays: Number(s.frequencyDays) || 1,
           frequencyUnit: s.frequencyUnit || "month",
         })),
         subtotal,
@@ -413,7 +420,7 @@ export default function JobModal({
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      expiryRemindBefore: parseInt(e.target.value) || 0,
+                      expiryRemindBefore: e.target.value === "" ? "" : e.target.value,
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -631,7 +638,7 @@ export default function JobModal({
                               updateService(
                                 index,
                                 "units",
-                                parseFloat(e.target.value) || 0
+                                e.target.value
                               )
                             }
                             className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
@@ -651,7 +658,7 @@ export default function JobModal({
                               updateService(
                                 index,
                                 "rate",
-                                parseFloat(e.target.value) || 0
+                                e.target.value
                               )
                             }
                             className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
@@ -681,7 +688,7 @@ export default function JobModal({
                             updateService(
                               index,
                               "frequencyDays",
-                              parseInt(e.target.value) || 1
+                              e.target.value
                             )
                           }
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
