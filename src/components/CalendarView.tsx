@@ -18,6 +18,7 @@ import {
     Mail,
     Sun,
     Moon,
+    Filter,
 } from "lucide-react";
 import { RootState, AppDispatch } from "@/store";
 import { fetchContracts, updateJobForContract } from "@/store/contract/thunk";
@@ -70,6 +71,7 @@ export const CalendarView = () => {
         null
     );
     const [dayNightFilter, setDayNightFilter] = useState<'all' | 'day' | 'night'>('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'work pending' | 'work done' | 'work informed'>('all');
 
     useEffect(() => {
         dispatch(
@@ -88,6 +90,10 @@ export const CalendarView = () => {
             if (contract.jobs && contract.jobs.length > 0) {
                 contract.jobs.forEach((job) => {
                     if (dayNightFilter !== 'all' && job.dayType !== dayNightFilter) {
+                        return;
+                    }
+
+                    if (statusFilter !== 'all' && job.status !== statusFilter) {
                         return;
                     }
 
@@ -112,7 +118,7 @@ export const CalendarView = () => {
         });
 
         return calendarEvents;
-    }, [contracts, dayNightFilter]);
+    }, [contracts, dayNightFilter, statusFilter]);
 
     const eventStyleGetter = (event: CalendarEvent) => {
         const status = event.resource.job.status;
@@ -253,6 +259,21 @@ export const CalendarView = () => {
                                 <ChevronRight className="w-5 h-5 text-gray-700" />
                             </button>
                         </div>
+
+                        {/* Mobile Status Filter */}
+                        <div className="lg:hidden">
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value as any)}
+                                className="w-32 bg-gray-100 border-none rounded-lg text-xs font-medium p-2 outline-none focus:ring-0"
+                            >
+                                <option value="all">All Status</option>
+                                <option value="work pending">Pending</option>
+                                <option value="work informed">Informed</option>
+                                <option value="work done">Done</option>
+                            </select>
+                        </div>
+
                         {/* Mobile Day/Night Filter */}
                         <div className="flex lg:hidden bg-gray-100 rounded-lg p-1">
                             <button
@@ -283,6 +304,21 @@ export const CalendarView = () => {
                     <h2 className="text-xl lg:text-2xl font-bold text-gray-800">{label}</h2>
 
                     <div className="flex items-center gap-4">
+                        {/* Desktop Status Filter */}
+                        <div className="hidden lg:flex items-center space-x-2 bg-gray-100 rounded-lg p-1 px-2">
+                            <Filter className="w-4 h-4 text-gray-500" />
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value as any)}
+                                className="bg-transparent border-none text-sm font-medium text-gray-700 outline-none focus:ring-0 cursor-pointer"
+                            >
+                                <option value="all">All Status</option>
+                                <option value="work pending">Work Pending</option>
+                                <option value="work informed">Work Informed</option>
+                                <option value="work done">Work Done</option>
+                            </select>
+                        </div>
+
                         {/* Desktop Day/Night Filter */}
                         <div className="hidden lg:flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
                             <button
