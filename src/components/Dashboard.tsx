@@ -1,5 +1,6 @@
-import  { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertTriangle, Calendar, FileText, Bell, CheckCircle, XCircle } from 'lucide-react';
+import api from "@/api/axios";
 
 interface Contract {
   id: string;
@@ -16,27 +17,57 @@ interface Schedule {
   daysOverdue: number;
 }
 
+interface DashboardStats {
+  expiredContracts: Contract[];
+  expiringContracts: Contract[];
+  overdueSchedules: Schedule[];
+  stats: {
+    totalActiveContracts: number;
+    scheduledThisWeek: number;
+    actionRequired: number;
+  };
+}
+
 const PestControlDashboard = () => {
   const [activeTab, setActiveTab] = useState<'actions' | 'reminders'>('actions');
+  const [data, setData] = useState<DashboardStats>({
+    expiredContracts: [],
+    expiringContracts: [],
+    overdueSchedules: [],
+    stats: {
+      totalActiveContracts: 0,
+      scheduledThisWeek: 0,
+      actionRequired: 0,
+    },
+  });
+  const [loading, setLoading] = useState(true);
 
-  const expiredContracts: Contract[] = [
-    { id: 'C001', client: 'Blue Ocean Restaurant', expiry: '2024-11-15', status: 'expired' },
-    { id: 'C002', client: 'Green Valley Hotel', expiry: '2024-10-28', status: 'expired' },
-    { id: 'C003', client: 'Sunrise Apartments', expiry: '2024-11-01', status: 'expired' }
-  ];
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await api.get('/contracts/stats');
+        if (res.data.success) {
+          setData(res.data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const overdueSchedules: Schedule[] = [
-    { id: 'S001', client: 'Metro Shopping Mall', service: 'Rodent Control', dueDate: '2024-11-25', daysOverdue: 8 },
-    { id: 'S002', client: 'City Hospital', service: 'Termite Inspection', dueDate: '2024-11-20', daysOverdue: 13 },
-    { id: 'S003', client: 'Oakwood School', service: 'General Pest Treatment', dueDate: '2024-11-28', daysOverdue: 5 }
-  ];
+    fetchStats();
+  }, []);
 
-  const expiringContracts: Contract[] = [
-    { id: 'C004', client: 'Riverside Cafe', expiry: '2024-12-15', status: 'expiring' },
-    { id: 'C005', client: 'Harbor Warehouse', expiry: '2024-12-20', status: 'expiring' },
-    { id: 'C006', client: 'Mountain View Resort', expiry: '2024-12-10', status: 'expiring' },
-    { id: 'C007', client: 'Downtown Office Complex', expiry: '2024-12-25', status: 'expiring' }
-  ];
+  const { expiredContracts, expiringContracts, overdueSchedules, stats } = data;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+        <div className="text-xl font-semibold text-blue-600">Loading Dashboard...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
@@ -53,22 +84,20 @@ const PestControlDashboard = () => {
         <div className="flex space-x-4 mb-6">
           <button
             onClick={() => setActiveTab('actions')}
-            className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition ${
-              activeTab === 'actions'
+            className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition ${activeTab === 'actions'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'bg-white text-gray-700 hover:bg-blue-50'
-            }`}
+              }`}
           >
             <AlertTriangle className="w-5 h-5" />
             <span>Recommended Actions</span>
           </button>
           <button
             onClick={() => setActiveTab('reminders')}
-            className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition ${
-              activeTab === 'reminders'
+            className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition ${activeTab === 'reminders'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'bg-white text-gray-700 hover:bg-blue-50'
-            }`}
+              }`}
           >
             <Bell className="w-5 h-5" />
             <span>Recommended Reminders</span>
@@ -88,23 +117,27 @@ const PestControlDashboard = () => {
                 </span>
               </div>
               <div className="p-6">
-                <div className="space-y-4">
-                  {expiredContracts.map((contract) => (
-                    <div key={contract.id} className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200">
-                      <div className="flex items-center space-x-4">
-                        <FileText className="w-8 h-8 text-red-600" />
-                        <div>
-                          <p className="font-semibold text-gray-800">{contract.client}</p>
-                          <p className="text-sm text-gray-600">Contract ID: {contract.id}</p>
-                          <p className="text-sm text-red-600 font-medium">Expired: {contract.expiry}</p>
+                {expiredContracts.length === 0 ? (
+                  <p className="text-gray-500">No expired contracts.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {expiredContracts.map((contract) => (
+                      <div key={contract.id} className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200">
+                        <div className="flex items-center space-x-4">
+                          <FileText className="w-8 h-8 text-red-600" />
+                          <div>
+                            <p className="font-semibold text-gray-800">{contract.client}</p>
+                            <p className="text-sm text-gray-600">Contract ID: {contract.id}</p>
+                            <p className="text-sm text-red-600 font-medium">Expired: {contract.expiry}</p>
+                          </div>
                         </div>
+                        <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition">
+                          Renew Now
+                        </button>
                       </div>
-                      <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition">
-                        Renew Now
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -118,25 +151,29 @@ const PestControlDashboard = () => {
                 </span>
               </div>
               <div className="p-6">
-                <div className="space-y-4">
-                  {overdueSchedules.map((schedule) => (
-                    <div key={schedule.id} className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
-                      <div className="flex items-center space-x-4">
-                        <Calendar className="w-8 h-8 text-orange-600" />
-                        <div>
-                          <p className="font-semibold text-gray-800">{schedule.client}</p>
-                          <p className="text-sm text-gray-600">{schedule.service}</p>
-                          <p className="text-sm text-orange-600 font-medium">
-                            Due: {schedule.dueDate} ({schedule.daysOverdue} days overdue)
-                          </p>
+                {overdueSchedules.length === 0 ? (
+                  <p className="text-gray-500">No overdue schedules.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {overdueSchedules.map((schedule) => (
+                      <div key={schedule.id} className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
+                        <div className="flex items-center space-x-4">
+                          <Calendar className="w-8 h-8 text-orange-600" />
+                          <div>
+                            <p className="font-semibold text-gray-800">{schedule.client}</p>
+                            <p className="text-sm text-gray-600">{schedule.service}</p>
+                            <p className="text-sm text-orange-600 font-medium">
+                              Due: {schedule.dueDate} ({schedule.daysOverdue} days overdue)
+                            </p>
+                          </div>
                         </div>
+                        <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition">
+                          Schedule Now
+                        </button>
                       </div>
-                      <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition">
-                        Schedule Now
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -156,28 +193,32 @@ const PestControlDashboard = () => {
               </div>
               <div className="p-6">
                 <p className="text-gray-600 mb-4">These contracts will expire soon. Consider reaching out to clients for renewal.</p>
-                <div className="space-y-4">
-                  {expiringContracts.map((contract) => (
-                    <div key={contract.id} className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <div className="flex items-center space-x-4">
-                        <FileText className="w-8 h-8 text-yellow-600" />
-                        <div>
-                          <p className="font-semibold text-gray-800">{contract.client}</p>
-                          <p className="text-sm text-gray-600">Contract ID: {contract.id}</p>
-                          <p className="text-sm text-yellow-600 font-medium">Expiring: {contract.expiry}</p>
+                {expiringContracts.length === 0 ? (
+                  <p className="text-gray-500">No expiring contracts.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {expiringContracts.map((contract) => (
+                      <div key={contract.id} className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <div className="flex items-center space-x-4">
+                          <FileText className="w-8 h-8 text-yellow-600" />
+                          <div>
+                            <p className="font-semibold text-gray-800">{contract.client}</p>
+                            <p className="text-sm text-gray-600">Contract ID: {contract.id}</p>
+                            <p className="text-sm text-yellow-600 font-medium">Expiring: {contract.expiry}</p>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition">
+                            Contact Client
+                          </button>
+                          <button className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium transition">
+                            Send Reminder
+                          </button>
                         </div>
                       </div>
-                      <div className="flex space-x-2">
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition">
-                          Contact Client
-                        </button>
-                        <button className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium transition">
-                          Send Reminder
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -189,7 +230,7 @@ const PestControlDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Total Active Contracts</p>
-                <p className="text-3xl font-bold text-blue-600 mt-2">47</p>
+                <p className="text-3xl font-bold text-blue-600 mt-2">{stats.totalActiveContracts}</p>
               </div>
               <CheckCircle className="w-12 h-12 text-blue-600" />
             </div>
@@ -198,7 +239,7 @@ const PestControlDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Scheduled This Week</p>
-                <p className="text-3xl font-bold text-green-600 mt-2">23</p>
+                <p className="text-3xl font-bold text-green-600 mt-2">{stats.scheduledThisWeek}</p>
               </div>
               <Calendar className="w-12 h-12 text-green-600" />
             </div>
@@ -207,7 +248,7 @@ const PestControlDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Action Required</p>
-                <p className="text-3xl font-bold text-red-600 mt-2">{expiredContracts.length + overdueSchedules.length}</p>
+                <p className="text-3xl font-bold text-red-600 mt-2">{stats.actionRequired}</p>
               </div>
               <AlertTriangle className="w-12 h-12 text-red-600" />
             </div>
