@@ -462,15 +462,15 @@ export const CalendarView = () => {
             {/* Event Details Modal */}
             {selectedEvent && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                    className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
                     onClick={() => setSelectedEvent(null)}
                 >
                     <div
-                        className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden"
+                        className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-5">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-5 shrink-0 rounded-t-2xl">
                             <div className="flex items-start justify-between">
                                 <div className="flex items-start space-x-3">
                                     <div className="bg-white bg-opacity-20 p-2 rounded-lg">
@@ -495,7 +495,7 @@ export const CalendarView = () => {
                         </div>
 
                         {/* Modal Body */}
-                        <div className="p-6 space-y-6">
+                        <div className="p-6 space-y-6 overflow-y-auto">
                             {/* Status and Contract Info Row */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Contract Info */}
@@ -609,7 +609,7 @@ export const CalendarView = () => {
                                         <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
                                             Services & Products
                                         </h3>
-                                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                                        <div className="space-y-2">
                                             {selectedEvent.resource.job.servicesProducts.map(
                                                 (service, idx) => (
                                                     <div
@@ -636,7 +636,7 @@ export const CalendarView = () => {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                        <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 shrink-0 rounded-b-2xl">
                             <button
                                 onClick={() => setSelectedEvent(null)}
                                 className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition font-medium"

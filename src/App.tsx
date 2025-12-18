@@ -7,6 +7,7 @@ import Contract from "./pages/user/Contract";
 import ContractView from "./components/ContractView";
 import JobViewPage from "./components/JobView";
 import { CalendarView } from "./components/CalendarView";
+import Invoices from "./pages/user/Invoices";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Route index element={<Home />} />
             <Route path="/Contracts" element={<Contract />} />
             <Route path="/calendar" element={<CalendarView />} />
+            <Route path="/invoices" element={<Invoices />} />
             <Route path="/contracts/:id" element={<ContractView />} />
             <Route
               path="/contracts/:id/jobs/:jobId"
