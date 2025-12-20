@@ -190,25 +190,34 @@ export default function JobModal({
       let occurrencesPerYear;
 
       if (service.isEveryDay) {
-        // Every day checked: 365 ÷ frequency (in days)
-        occurrencesPerYear = Math.floor(365 / freq);
-      } else {
-        // Every day NOT checked: multiply by frequency and yearly multiplier
-
+        // "Every" checked: Interval logic (Every X Days/Weeks/Months/Years)
         if (service.frequencyUnit === "day") {
-          // For days: 365 ÷ frequency
-          occurrencesPerYear = Math.floor(365 / freq);
+          occurrencesPerYear = 365 / freq;
         } else if (service.frequencyUnit === "week") {
-          // For weeks: frequency × 52
+          occurrencesPerYear = 52 / freq;
+        } else if (service.frequencyUnit === "month") {
+          occurrencesPerYear = 12 / freq;
+        } else if (service.frequencyUnit === "year") {
+          occurrencesPerYear = 1 / freq;
+        } else {
+          occurrencesPerYear = 12 / freq;
+        }
+      } else {
+        // "Every" NOT checked: Frequency logic (X times per Day/Week/Month/Year)
+        if (service.frequencyUnit === "day") {
+          // X times per day
+          occurrencesPerYear = freq * 365;
+        } else if (service.frequencyUnit === "week") {
+          // X times per week
           occurrencesPerYear = freq * 52;
         } else if (service.frequencyUnit === "month") {
-          // For months: frequency × 12
+          // X times per month
           occurrencesPerYear = freq * 12;
         } else if (service.frequencyUnit === "year") {
-          // For years: frequency × 1
+          // X times per year
           occurrencesPerYear = freq * 1;
         } else {
-          occurrencesPerYear = 12; // default
+          occurrencesPerYear = freq * 12;
         }
       }
 
@@ -723,7 +732,7 @@ export default function JobModal({
                           }
                           className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
                         />
-                        <span className="text-sm text-gray-700">Every Day</span>
+                        <span className="text-sm text-gray-700">Every</span>
                       </label>
                     </div>
                   </div>

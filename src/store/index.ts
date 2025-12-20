@@ -1,11 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit";
 import contractReducer from "./contract/slice";
-import invoiceReducer from "./invoice/slice";
 
 const store = configureStore({
   reducer: {
     contracts: contractReducer,
-    invoices: invoiceReducer,
   },
 });
 

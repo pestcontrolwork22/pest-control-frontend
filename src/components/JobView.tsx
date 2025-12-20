@@ -29,6 +29,43 @@ export default function JobViewPage() {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  const [isEditingInvoice, setIsEditingInvoice] = useState(false);
+  const [invoiceDates, setInvoiceDates] = useState({
+    startDate: "",
+    endDate: ""
+  });
+
+  useEffect(() => {
+    if (job?.invoiceReminder) {
+      setInvoiceDates({
+        startDate: new Date(job.invoiceReminder.startDate).toISOString().split('T')[0],
+        endDate: new Date(job.invoiceReminder.endDate).toISOString().split('T')[0]
+      });
+    }
+  }, [job]);
+
+  const handleInvoiceSave = async () => {
+    if (!job || !contractId) return;
+    try {
+      await dispatch(
+        updateJobForContract({
+          contractId,
+          jobId: job._id,
+          updates: {
+            invoiceReminder: {
+              ...job.invoiceReminder,
+              startDate: new Date(invoiceDates.startDate),
+              endDate: new Date(invoiceDates.endDate)
+            }
+          },
+        })
+      ).unwrap();
+      setIsEditingInvoice(false);
+    } catch (error) {
+      console.error("Failed to update invoice dates:", error);
+    }
+  };
+
   useEffect(() => {
     if (contractId && jobId) {
       dispatch(fetchJobById({ contractId, jobId }));
@@ -137,10 +174,10 @@ export default function JobViewPage() {
                   <div className="flex items-center gap-3">
                     <div
                       className={`p-3 rounded-full ${job.status === "work done"
-                          ? "bg-green-100 text-green-600"
-                          : job.status === "work informed"
-                            ? "bg-blue-100 text-blue-600"
-                            : "bg-amber-100 text-amber-600"
+                        ? "bg-green-100 text-green-600"
+                        : job.status === "work informed"
+                          ? "bg-blue-100 text-blue-600"
+                          : "bg-amber-100 text-amber-600"
                         }`}
                     >
                       {job.status === "work done" ? (
@@ -165,10 +202,10 @@ export default function JobViewPage() {
                     value={job.status}
                     onChange={(e) => handleStatusChange(e.target.value)}
                     className={`w-full sm:w-auto px-4 py-2 rounded-lg border-2 font-semibold outline-none cursor-pointer transition-colors ${job.status === "work done"
-                        ? "border-green-200 bg-green-50 text-green-700 focus:border-green-500"
-                        : job.status === "work informed"
-                          ? "border-blue-200 bg-blue-50 text-blue-700 focus:border-blue-500"
-                          : "border-amber-200 bg-amber-50 text-amber-700 focus:border-amber-500"
+                      ? "border-green-200 bg-green-50 text-green-700 focus:border-green-500"
+                      : job.status === "work informed"
+                        ? "border-blue-200 bg-blue-50 text-blue-700 focus:border-blue-500"
+                        : "border-amber-200 bg-amber-50 text-amber-700 focus:border-amber-500"
                       }`}
                   >
                     <option value="work pending">Work Pending</option>
@@ -248,50 +285,150 @@ export default function JobViewPage() {
 
               {/* Invoice Reminder Section */}
               <div className="mb-8 bg-green-50 rounded-xl p-6 border border-green-200">
-                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <FileText className="w-6 h-6 text-green-600" />
-                  Invoice Reminder Details
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm text-gray-600 font-medium">Invoice Start Date</label>
-                    <p className="text-lg font-semibold text-gray-900 mt-1">
-                      {formatDate(job.invoiceReminder.startDate)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-gray-600 font-medium">Invoice End Date</label>
-                    <p className="text-lg font-semibold text-gray-900 mt-1">
-                      {formatDate(job.invoiceReminder.endDate)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-gray-600 font-medium">Billing Frequency</label>
-                    <p className="text-lg font-semibold text-gray-900 mt-1 capitalize">
-                      {job.invoiceReminder.billingFrequency.replace('_', ' ')}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <FileText className="w-6 h-6 text-green-600" />
+                    Invoice Reminder Details
+                  </h3>
+                  {!isEditingInvoice ? (
+                    <button
+                      onClick={() => setIsEditingInvoice(true)}
+                      className="flex items-center gap-2 text-sm font-semibold text-green-700 hover:text-green-800 bg-green-100 hover:bg-green-200 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      Edit Dates
+                    </button>
+                  ) : (
                     <div className="flex items-center gap-2">
-                      {job.invoiceReminder.isAdvanceInvoice ? (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      ) : (
-                        <XCircle className="w-5 h-5 text-gray-400" />
-                      )}
-                      <span className="text-sm text-gray-700">Advance Invoice</span>
+                      <button
+                        onClick={() => setIsEditingInvoice(false)}
+                        className="text-sm font-semibold text-gray-600 hover:text-gray-700 px-3 py-1.5"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleInvoiceSave}
+                        className="flex items-center gap-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Save Changes
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600 font-medium block mb-1">Invoice Start Date</label>
+                        {isEditingInvoice ? (
+                          <input
+                            type="date"
+                            value={invoiceDates.startDate}
+                            onChange={(e) => setInvoiceDates(prev => ({ ...prev, startDate: e.target.value }))}
+                            className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white"
+                          />
+                        ) : (
+                          <p className="text-lg font-semibold text-gray-900">
+                            {formatDate(job.invoiceReminder.startDate)}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="text-sm text-gray-600 font-medium block mb-1">Invoice End Date</label>
+                        {isEditingInvoice ? (
+                          <input
+                            type="date"
+                            value={invoiceDates.endDate}
+                            onChange={(e) => setInvoiceDates(prev => ({ ...prev, endDate: e.target.value }))}
+                            className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white"
+                          />
+                        ) : (
+                          <p className="text-lg font-semibold text-gray-900">
+                            {formatDate(job.invoiceReminder.endDate)}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {job.invoiceReminder.invoiceAfterJobsClosed ? (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      ) : (
-                        <XCircle className="w-5 h-5 text-gray-400" />
-                      )}
-                      <span className="text-sm text-gray-700">Invoice After Jobs Closed</span>
+                    <div>
+                      <label className="text-sm text-gray-600 font-medium">Billing Frequency</label>
+                      <p className="text-lg font-semibold text-gray-900 mt-1 capitalize flex items-center gap-2">
+                        {job.invoiceReminder.billingFrequency.replace('_', ' ')}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                      <div className="flex items-center gap-2">
+                        {job.invoiceReminder.isAdvanceInvoice ? (
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-gray-400" />
+                        )}
+                        <span className="text-sm text-gray-700">Advance Invoice</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {job.invoiceReminder.invoiceAfterJobsClosed ? (
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-gray-400" />
+                        )}
+                        <span className="text-sm text-gray-700">Invoice After Jobs Closed</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Calculated Schedule */}
+                  <div className="bg-white/60 rounded-xl p-4 border border-green-100">
+                    <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">
+                      Projected Payment Schedule
+                    </h4>
+                    <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                      {(() => {
+                        const start = new Date(isEditingInvoice ? invoiceDates.startDate : job.invoiceReminder.startDate);
+                        const end = new Date(isEditingInvoice ? invoiceDates.endDate : job.invoiceReminder.endDate);
+                        let current = new Date(start);
+
+                        let months = 1;
+                        switch (job.invoiceReminder.billingFrequency) {
+                          case 'monthly': months = 1; break;
+                          case 'quarterly': months = 3; break;
+                          case 'semi_annually': months = 6; break;
+                          case 'annually': months = 12; break;
+                        }
+
+                        // Generate dates
+                        const dates = [];
+                        while (current <= end) {
+                          dates.push(new Date(current));
+                          current.setMonth(current.getMonth() + months);
+                        }
+
+                        // Calculate amount per invoice
+                        const amountPerInvoice = dates.length > 0 ? job.grandTotal / dates.length : 0;
+
+                        return (
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center text-xs font-semibold text-gray-500 mb-2 border-b border-gray-200 pb-1">
+                              <span>Invoice Date</span>
+                              <span>Amount (Inc. VAT)</span>
+                            </div>
+                            {dates.map((date, idx) => (
+                              <div key={idx} className="flex justify-between items-center text-sm">
+                                <span className="text-gray-700">{formatDate(date.toISOString())}</span>
+                                <span className="font-medium text-gray-900">AED {amountPerInvoice.toFixed(2)}</span>
+                              </div>
+                            ))}
+                            <div className="mt-3 pt-2 border-t border-green-200 flex justify-between items-center font-bold text-green-800 text-sm">
+                              <span>Total ({dates.length} invoices)</span>
+                              <span>AED {job.grandTotal.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
