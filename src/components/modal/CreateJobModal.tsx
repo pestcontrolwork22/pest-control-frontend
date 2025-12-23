@@ -76,10 +76,16 @@ export default function JobModal({
   });
 
   const [employees] = useState([
-    { id: "emp1", name: "John Doe" },
-    { id: "emp2", name: "Jane Smith" },
-    { id: "emp3", name: "Ahmed Ali" },
-    { id: "emp4", name: "Sara Mohammed" },
+    { id: "emp1", name: "Manzoor" },
+    { id: "emp2", name: "Rafi" },
+    { id: "emp3", name: "Sabith" },
+    { id: "emp4", name: "Shakir" },
+    { id: "emp5", name: "Shanu" },
+    { id: "emp6", name: "Aboobaker" },
+    { id: "emp7", name: "Faijas" },
+    { id: "emp8", name: "Shareef" },
+    { id: "emp9", name: "Ahil" },
+    { id: "emp10", name: "Huwaiz" },
   ]);
 
   const serviceTypes = [
