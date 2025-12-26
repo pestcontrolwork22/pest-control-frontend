@@ -9,12 +9,20 @@ export const fetchContracts = createAsyncThunk(
       page = 1,
       limit = 10,
       search = "",
-    }: { page: number; limit: number; search: string },
+      startDate,
+      endDate,
+    }: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      startDate?: string;
+      endDate?: string;
+    },
     { rejectWithValue }
   ) => {
     try {
       const res = await api.get("/contracts", {
-        params: { page, limit, search },
+        params: { page, limit, search, startDate, endDate },
       });
       return res.data;
     } catch (err: any) {
