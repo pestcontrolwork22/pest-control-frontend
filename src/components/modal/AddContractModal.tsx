@@ -130,7 +130,6 @@ export const AddContractModal = ({
               <InputField
                 label="Title"
                 name="title"
-                required
                 value={formData.title}
                 onChange={handleChange}
               />
@@ -139,7 +138,6 @@ export const AddContractModal = ({
               <InputField
                 label="Alias Name"
                 name="aliasName"
-                required
                 value={formData.aliasName}
                 onChange={handleChange}
               />
@@ -148,7 +146,6 @@ export const AddContractModal = ({
               <InputField
                 label="TRN Number"
                 name="trnNumber"
-                required
                 value={formData.trnNumber}
                 onChange={handleChange}
               />
@@ -158,7 +155,6 @@ export const AddContractModal = ({
                 label="Email"
                 type="email"
                 name="email"
-                required
                 value={formData.email}
                 onChange={handleChange}
               />
@@ -167,7 +163,6 @@ export const AddContractModal = ({
               <InputField
                 label="Phone"
                 name="phone"
-                required
                 value={formData.phone}
                 onChange={handleChange}
               />
@@ -176,7 +171,6 @@ export const AddContractModal = ({
               <InputField
                 label="Mobile"
                 name="mobile"
-                required
                 value={formData.mobile}
                 onChange={handleChange}
               />
@@ -193,28 +187,24 @@ export const AddContractModal = ({
               <InputField
                 label="Street 1"
                 name="street1"
-                required
                 value={formData.address.street1}
                 onChange={handleAddressChange}
               />
               <InputField
                 label="Street 2"
                 name="street2"
-                required
                 value={formData.address.street2}
                 onChange={handleAddressChange}
               />
               <InputField
                 label="City"
                 name="city"
-                required
                 value={formData.address.city}
                 onChange={handleAddressChange}
               />
               <InputField
                 label="PO Box"
                 name="poBox"
-                required
                 value={formData.address.poBox}
                 onChange={handleAddressChange}
               />
@@ -223,7 +213,6 @@ export const AddContractModal = ({
               <SelectField
                 label="Emirate"
                 name="emirate"
-                required
                 value={formData.address.emirate}
                 options={emirates}
                 onChange={handleAddressChange}
@@ -233,7 +222,6 @@ export const AddContractModal = ({
               <SelectField
                 label="Country"
                 name="country"
-                required
                 value={formData.address.country}
                 options={countries}
                 onChange={handleAddressChange}
@@ -252,7 +240,6 @@ export const AddContractModal = ({
               <SelectField
                 label="Referred By Employee"
                 name="referredByEmployee"
-                required
                 value={formData.referredByEmployee}
                 options={employees}
                 onChange={handleChange}
@@ -263,7 +250,6 @@ export const AddContractModal = ({
                 label="Quote Validity Days"
                 name="quoteValidityDays"
                 type="number"
-                required
                 value={formData.quoteValidityDays}
                 onChange={handleChange}
               />
@@ -273,7 +259,6 @@ export const AddContractModal = ({
                 label="Credit Limit"
                 name="creditLimit"
                 type="number"
-                required
                 value={formData.creditLimit}
                 onChange={handleChange}
               />
@@ -287,7 +272,6 @@ export const AddContractModal = ({
                   name="remarks"
                   value={formData.remarks}
                   onChange={handleChange}
-                  required
                   rows={4}
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter remarks"

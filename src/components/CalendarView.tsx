@@ -72,16 +72,49 @@ export const CalendarView = () => {
     );
     const [dayNightFilter, setDayNightFilter] = useState<'all' | 'day' | 'night'>('all');
     const [statusFilter, setStatusFilter] = useState<'all' | 'work pending' | 'work done' | 'work informed'>('all');
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const getDateRange = (date: Date, view: View) => {
+        let start, end;
+        if (view === "month") {
+            start = startOfWeek(new Date(date.getFullYear(), date.getMonth(), 1));
+            end = startOfWeek(new Date(date.getFullYear(), date.getMonth() + 1, 1));
+            end.setDate(end.getDate() + 42);
+        } else if (view === "week") {
+            start = startOfWeek(date);
+            end = new Date(start);
+            end.setDate(end.getDate() + 7);
+        } else if (view === "day") {
+            start = new Date(date);
+            start.setHours(0, 0, 0, 0);
+            end = new Date(date);
+            end.setHours(23, 59, 59, 999);
+        } else {
+            start = startOfWeek(new Date(date.getFullYear(), date.getMonth(), 1));
+            end = startOfWeek(new Date(date.getFullYear(), date.getMonth() + 1, 1));
+            end.setDate(end.getDate() + 42);
+        }
+        return { start, end };
+    };
 
     useEffect(() => {
-        dispatch(
-            fetchContracts({
-                page: 1,
-                limit: 1000,
-                search: "",
-            })
-        );
-    }, [dispatch]);
+        const { start, end } = getDateRange(date, view);
+
+        // Debounce search
+        const timeoutId = setTimeout(() => {
+            dispatch(
+                fetchContracts({
+                    page: 1,
+                    limit: 1000,
+                    search: searchTerm,
+                    startDate: start.toISOString(),
+                    endDate: end.toISOString()
+                })
+            );
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [dispatch, date, view, searchTerm]);
 
     const events: CalendarEvent[] = useMemo(() => {
         const calendarEvents: CalendarEvent[] = [];
@@ -400,8 +433,8 @@ export const CalendarView = () => {
     return (
         <div className="p-6 bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
             {/* Header */}
-            <div className="mb-6">
-                <div className="flex items-center space-x-3 mb-2">
+            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center space-x-3 mb-2 md:mb-0">
                     <div className="bg-blue-600 p-3 rounded-xl">
                         <CalendarIcon className="w-8 h-8 text-white" />
                     </div>
@@ -411,6 +444,17 @@ export const CalendarView = () => {
                             View and manage all scheduled jobs
                         </p>
                     </div>
+                </div>
+
+                {/* Search Input */}
+                <div className="w-full md:w-auto">
+                    <input
+                        type="text"
+                        placeholder="Search by Title or Pest Number..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition shadow-sm"
+                    />
                 </div>
             </div>
 
