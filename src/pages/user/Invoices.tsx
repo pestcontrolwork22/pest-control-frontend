@@ -8,12 +8,10 @@ import { Job } from "@/types/contract";
 import { Pagination } from "@/components/common/Pagination";
 import {
     Calendar,
-    CheckCircle,
     Clock,
     Edit3,
     FileText,
     Save,
-    XCircle,
     Loader2,
     ChevronDown,
     ChevronUp
@@ -293,25 +291,6 @@ export default function Invoices() {
                                                                 {formatDate(job.invoiceReminder.endDate)}
                                                             </div>
                                                         )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex gap-4">
-                                                    <div className="flex items-center gap-2 text-sm">
-                                                        {job.invoiceReminder.isAdvanceInvoice ? (
-                                                            <CheckCircle className="w-4 h-4 text-green-600" />
-                                                        ) : (
-                                                            <XCircle className="w-4 h-4 text-gray-400" />
-                                                        )}
-                                                        <span className="text-gray-600">Advance Invoice</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-sm">
-                                                        {job.invoiceReminder.invoiceAfterJobsClosed ? (
-                                                            <CheckCircle className="w-4 h-4 text-green-600" />
-                                                        ) : (
-                                                            <XCircle className="w-4 h-4 text-gray-400" />
-                                                        )}
-                                                        <span className="text-gray-600">Invoice After Job Closed</span>
                                                     </div>
                                                 </div>
                                             </div>

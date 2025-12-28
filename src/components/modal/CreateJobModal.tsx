@@ -31,9 +31,9 @@ export default function JobModal({
     invoiceReminder: {
       startDate: string;
       endDate: string;
-      isAdvanceInvoice: boolean;
-      invoiceAfterJobsClosed: boolean;
       billingFrequency: string;
+      customFrequencyValue?: number | string;
+      customFrequencyUnit?: "day" | "week" | "month" | "year";
     };
     servicesProducts: Array<{
       serviceType: string;
@@ -43,7 +43,7 @@ export default function JobModal({
       subtotalPerYear: number;
       frequencyDays: number | string;
       frequencyUnit: "day" | "week" | "month" | "year";
-      isEveryDay: boolean;
+      isEvery: boolean;
     }>;
   }>({
     jobType: "recurring",
@@ -57,9 +57,9 @@ export default function JobModal({
     invoiceReminder: {
       startDate: "",
       endDate: "",
-      isAdvanceInvoice: false,
-      invoiceAfterJobsClosed: false,
       billingFrequency: "monthly",
+      customFrequencyValue: 15,
+      customFrequencyUnit: "day",
     },
     servicesProducts: [
       {
@@ -70,7 +70,7 @@ export default function JobModal({
         subtotalPerYear: 0,
         frequencyDays: 1,
         frequencyUnit: "month",
-        isEveryDay: false,
+        isEvery: false,
       },
     ],
   });
@@ -106,9 +106,13 @@ export default function JobModal({
     { value: "quarterly", label: "Quarterly" },
     { value: "semi_annually", label: "Semi-Annually" },
     { value: "annually", label: "Annually" },
+    { value: "custom", label: "Custom" },
   ];
 
   const dispatch = useAppDispatch();
+
+  console.log("form datass:", formData);
+
 
   // Load job data when in edit mode
   useEffect(() => {
@@ -125,9 +129,9 @@ export default function JobModal({
         invoiceReminder: {
           startDate: job.invoiceReminder.startDate.split("T")[0],
           endDate: job.invoiceReminder.endDate.split("T")[0],
-          isAdvanceInvoice: job.invoiceReminder.isAdvanceInvoice,
-          invoiceAfterJobsClosed: job.invoiceReminder.invoiceAfterJobsClosed,
           billingFrequency: job.invoiceReminder.billingFrequency,
+          customFrequencyValue: job.invoiceReminder.customFrequencyValue,
+          customFrequencyUnit: job.invoiceReminder.customFrequencyUnit,
         },
         servicesProducts: job.servicesProducts.map(s => ({
           ...s,
@@ -148,9 +152,9 @@ export default function JobModal({
         invoiceReminder: {
           startDate: "",
           endDate: "",
-          isAdvanceInvoice: false,
-          invoiceAfterJobsClosed: false,
           billingFrequency: "monthly",
+          customFrequencyValue: 15,
+          customFrequencyUnit: "day",
         },
         servicesProducts: [
           {
@@ -161,7 +165,7 @@ export default function JobModal({
             subtotalPerYear: 0,
             frequencyDays: 1,
             frequencyUnit: "month",
-            isEveryDay: false,
+            isEvery: false,
           },
         ],
       });
@@ -187,7 +191,7 @@ export default function JobModal({
     updated[index] = { ...updated[index], [field]: value };
 
     // Auto-calculate subtotal per year based on frequency
-    if (field === "units" || field === "rate" || field === "frequencyDays" || field === "frequencyUnit" || field === "isEveryDay") {
+    if (field === "units" || field === "rate" || field === "frequencyDays" || field === "frequencyUnit" || field === "isEvery") {
       const service = updated[index];
       const units = Number(service.units) || 0;
       const rate = Number(service.rate) || 0;
@@ -195,7 +199,7 @@ export default function JobModal({
 
       let occurrencesPerYear;
 
-      if (service.isEveryDay) {
+      if (service.isEvery) {
         // "Every" checked: Interval logic (Every X Days/Weeks/Months/Years)
         if (service.frequencyUnit === "day") {
           occurrencesPerYear = 365 / freq;
@@ -248,7 +252,7 @@ export default function JobModal({
           subtotalPerYear: 0,
           frequencyDays: 1,
           frequencyUnit: "month",
-          isEveryDay: false,
+          isEvery: false,
         },
       ],
     });
@@ -270,6 +274,10 @@ export default function JobModal({
         dayType: formData.dayType || "day",
         expiryRemindBefore: Number(formData.expiryRemindBefore) || 0,
         status: "work pending",
+        invoiceReminder: {
+          ...formData.invoiceReminder,
+          customFrequencyValue: Number(formData.invoiceReminder.customFrequencyValue),
+        },
         servicesProducts: formData.servicesProducts.map((s) => ({
           ...s,
           units: Number(s.units) || 0,
@@ -485,23 +493,6 @@ export default function JobModal({
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 />
-                <label className="flex items-center space-x-2 mt-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.invoiceReminder.isAdvanceInvoice}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        invoiceReminder: {
-                          ...formData.invoiceReminder,
-                          isAdvanceInvoice: e.target.checked,
-                        },
-                      })
-                    }
-                    className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">Advance Invoice</span>
-                </label>
               </div>
 
               <div>
@@ -522,25 +513,6 @@ export default function JobModal({
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 />
-                <label className="flex items-center space-x-2 mt-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.invoiceReminder.invoiceAfterJobsClosed}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        invoiceReminder: {
-                          ...formData.invoiceReminder,
-                          invoiceAfterJobsClosed: e.target.checked,
-                        },
-                      })
-                    }
-                    className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">
-                    Invoice After Jobs Closed
-                  </span>
-                </label>
               </div>
 
               <div>
@@ -567,6 +539,57 @@ export default function JobModal({
                   ))}
                 </select>
               </div>
+
+              {formData.invoiceReminder.billingFrequency === 'custom' && (
+                <div className="col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 bg-green-100 p-4 rounded-lg">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Frequency Value *
+                    </label>
+                    <div className="flex items-center">
+                      <span className="mr-2 text-sm text-gray-600">Every</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.invoiceReminder.customFrequencyValue}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            invoiceReminder: {
+                              ...formData.invoiceReminder,
+                              customFrequencyValue: e.target.value,
+                            },
+                          })
+                        }
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Frequency Unit *
+                    </label>
+                    <select
+                      value={formData.invoiceReminder.customFrequencyUnit}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          invoiceReminder: {
+                            ...formData.invoiceReminder,
+                            customFrequencyUnit: e.target.value as any,
+                          },
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="day">Day</option>
+                      <option value="week">Week</option>
+                      <option value="month">Month</option>
+                      <option value="year">Year</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -732,9 +755,9 @@ export default function JobModal({
                       <label className="flex items-center space-x-2 cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={service.isEveryDay}
+                          checked={service.isEvery}
                           onChange={(e) =>
-                            updateService(index, "isEveryDay", e.target.checked)
+                            updateService(index, "isEvery", e.target.checked)
                           }
                           className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
                         />

@@ -359,26 +359,6 @@ export default function JobViewPage() {
                         {job.invoiceReminder.billingFrequency.replace('_', ' ')}
                       </p>
                     </div>
-
-                    <div className="space-y-2 pt-2">
-                      <div className="flex items-center gap-2">
-                        {job.invoiceReminder.isAdvanceInvoice ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <XCircle className="w-5 h-5 text-gray-400" />
-                        )}
-                        <span className="text-sm text-gray-700">Advance Invoice</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {job.invoiceReminder.invoiceAfterJobsClosed ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <XCircle className="w-5 h-5 text-gray-400" />
-                        )}
-                        <span className="text-sm text-gray-700">Invoice After Jobs Closed</span>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Calculated Schedule */}
@@ -490,7 +470,7 @@ export default function JobViewPage() {
                             <span className="text-xs text-gray-600">Frequency</span>
                           </div>
                           <span className="font-semibold text-gray-900">
-                            {service.isEveryDay
+                            {service.isEvery
                               ? 'Daily'
                               : `Every ${service.frequencyDays} ${service.frequencyUnit}${service.frequencyDays > 1 ? 's' : ''}`
                             }

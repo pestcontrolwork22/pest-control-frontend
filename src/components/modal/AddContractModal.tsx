@@ -54,11 +54,16 @@ export const AddContractModal = ({
     "Bahrain",
   ];
   const employees = [
-    "John Smith",
-    "Sarah Johnson",
-    "Mike Williams",
-    "Emily Brown",
-    "David Lee",
+    "Manzoor",
+    "Rafi",
+    "Sabith",
+    "Shakir",
+    "Shanu",
+    "Aboobaker",
+    "Faijas",
+    "Shareef",
+    "Ahil",
+    "Huwaiz"
   ];
 
   // ----------------------
