@@ -2,7 +2,18 @@ import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Calendar, dateFnsLocalizer, View } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
-import { format, parse, startOfWeek, getDay } from "date-fns";
+import {
+    format,
+    parse,
+    startOfWeek,
+    getDay,
+    addDays,
+    addWeeks,
+    addMonths,
+    addYears,
+    isBefore,
+    isAfter
+} from "date-fns";
 import { enUS } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
@@ -46,6 +57,7 @@ interface CalendarEvent {
     title: string;
     start: Date;
     end: Date;
+    type: 'job_occurrence' | 'invoice';
     resource: {
         job: Job;
         contractId: string;
@@ -54,6 +66,7 @@ interface CalendarEvent {
         email: string;
         phone: string;
         address: string;
+        serviceName?: string;
     };
 }
 
@@ -118,10 +131,14 @@ export const CalendarView = () => {
 
     const events: CalendarEvent[] = useMemo(() => {
         const calendarEvents: CalendarEvent[] = [];
+        const { start: viewStart, end: viewEnd } = getDateRange(date, view);
 
         contracts.forEach((contract) => {
             if (contract.jobs && contract.jobs.length > 0) {
                 contract.jobs.forEach((job) => {
+                    // Filter by Job filters (Status / DayNight)
+                    // Note: Invoices might not strictly adhere to these filters, but users likely want to filter everything for that job?
+                    // User request implies listing "jobs" based on frequency.
                     if (dayNightFilter !== 'all' && job.dayType !== dayNightFilter) {
                         return;
                     }
@@ -130,40 +147,207 @@ export const CalendarView = () => {
                         return;
                     }
 
-                    const startDate = new Date(job.startDate);
-                    calendarEvents.push({
-                        id: `${contract._id}-${job._id}`,
-                        title: `${contract.title} - ${job.jobType}`,
-                        start: startDate,
-                        end: startDate,
-                        resource: {
-                            job,
-                            contractId: contract._id,
-                            contractTitle: contract.title,
-                            contractNumber: contract.contractNumber,
-                            email: contract.email,
-                            phone: contract.phone,
-                            address: `${contract.address.city}, ${contract.address.emirate}`,
-                        },
-                    });
+                    const jobStart = new Date(job.startDate);
+                    const jobEnd = new Date(job.endDate);
+
+                    // 1. Generate Service Occurrences
+                    if (job.servicesProducts && job.servicesProducts.length > 0) {
+                        job.servicesProducts.forEach((service, serviceIdx) => {
+                            let currentServiceDate = new Date(jobStart);
+                            if (service.frequencyDays && service.frequencyUnit) {
+                                // Optimization: Skip ahead if start date is far in past?
+                                // For now, simple loop to ensure accuracy specially with month/year
+                                // Since we view a month at a time, we could optimize but let's be safe first.
+
+                                let safetyCounter = 0;
+                                while ((isBefore(currentServiceDate, jobEnd) || currentServiceDate.getTime() === jobEnd.getTime()) && safetyCounter < 10000) {
+                                    safetyCounter++;
+
+                                    // Check if currentServiceDate is within view range
+                                    // Make sure we compare dates properly
+                                    if (currentServiceDate >= viewStart && currentServiceDate <= viewEnd) {
+                                        calendarEvents.push({
+                                            id: `${contract._id}-${job._id}-service-${serviceIdx}-${currentServiceDate.getTime()}`,
+                                            title: `${contract.title} - ${service.serviceType.replace(/_/g, ' ')}`,
+                                            start: new Date(currentServiceDate),
+                                            end: new Date(currentServiceDate),
+                                            type: 'job_occurrence',
+                                            resource: {
+                                                job,
+                                                contractId: contract._id,
+                                                contractTitle: contract.title,
+                                                contractNumber: contract.contractNumber,
+                                                email: contract.email,
+                                                phone: contract.phone,
+                                                address: `${contract.address.city}, ${contract.address.emirate}`,
+                                                serviceName: service.serviceType
+                                            },
+                                        });
+                                    }
+
+                                    // Increment date
+                                    if (service.frequencyUnit === 'day') {
+                                        currentServiceDate = addDays(currentServiceDate, service.frequencyDays);
+                                    } else if (service.frequencyUnit === 'week') {
+                                        currentServiceDate = addWeeks(currentServiceDate, service.frequencyDays);
+                                    } else if (service.frequencyUnit === 'month') {
+                                        currentServiceDate = addMonths(currentServiceDate, service.frequencyDays);
+                                    } else if (service.frequencyUnit === 'year') {
+                                        currentServiceDate = addYears(currentServiceDate, service.frequencyDays);
+                                    } else {
+                                        break; // Should not happen
+                                    }
+
+                                    // If we've passed the viewEnd, and also passed the jobEnd (checked in loop condition), we can stop early if we are strictly looking for view range
+                                    if (isAfter(currentServiceDate, viewEnd)) {
+                                        break;
+                                    }
+                                }
+                            } else {
+                                // If no frequency, maybe it's a one-off? Just show start date?
+                                // The user said "based on frequency". If not recurring, it might just happen once.
+                                if (jobStart >= viewStart && jobStart <= viewEnd) {
+                                    calendarEvents.push({
+                                        id: `${contract._id}-${job._id}-once-${serviceIdx}`,
+                                        title: `${contract.title} - ${service.serviceType.replace(/_/g, ' ')}`,
+                                        start: jobStart,
+                                        end: jobStart,
+                                        type: 'job_occurrence',
+                                        resource: {
+                                            job,
+                                            contractId: contract._id,
+                                            contractTitle: contract.title,
+                                            contractNumber: contract.contractNumber,
+                                            email: contract.email,
+                                            phone: contract.phone,
+                                            address: `${contract.address.city}, ${contract.address.emirate}`,
+                                            serviceName: service.serviceType
+                                        },
+                                    });
+                                }
+                            }
+                        });
+                    } else {
+                        // Fallback if no services defined but job exists (legacy?)
+                        if (jobStart >= viewStart && jobStart <= viewEnd) {
+                            calendarEvents.push({
+                                id: `${contract._id}-${job._id}`,
+                                title: `${contract.title} - ${job.jobType}`,
+                                start: jobStart,
+                                end: jobStart,
+                                type: 'job_occurrence',
+                                resource: {
+                                    job,
+                                    contractId: contract._id,
+                                    contractTitle: contract.title,
+                                    contractNumber: contract.contractNumber,
+                                    email: contract.email,
+                                    phone: contract.phone,
+                                    address: `${contract.address.city}, ${contract.address.emirate}`,
+                                },
+                            });
+                        }
+                    }
+
+                    // 2. Generate Invoice Reminders
+                    if (job.invoiceReminder && job.invoiceReminder.billingFrequency) {
+                        const invoiceStart = new Date(job.invoiceReminder.startDate);
+                        const invoiceEnd = new Date(job.invoiceReminder.endDate);
+
+                        let currentInvoiceDate = new Date(invoiceStart);
+                        let safetyCounter = 0;
+
+                        while ((isBefore(currentInvoiceDate, invoiceEnd) || currentInvoiceDate.getTime() === invoiceEnd.getTime()) && safetyCounter < 1000) {
+                            safetyCounter++;
+
+                            if (currentInvoiceDate >= viewStart && currentInvoiceDate <= viewEnd) {
+                                calendarEvents.push({
+                                    id: `${contract._id}-${job._id}-invoice-${currentInvoiceDate.getTime()}`,
+                                    title: `${contract.title} - Invoice`,
+                                    start: new Date(currentInvoiceDate),
+                                    end: new Date(currentInvoiceDate),
+                                    type: 'invoice',
+                                    resource: {
+                                        job,
+                                        contractId: contract._id,
+                                        contractTitle: contract.title,
+                                        contractNumber: contract.contractNumber,
+                                        email: contract.email,
+                                        phone: contract.phone,
+                                        address: `${contract.address.city}, ${contract.address.emirate}`,
+                                    },
+                                });
+                            }
+
+                            // Increment
+                            switch (job.invoiceReminder.billingFrequency) {
+                                case 'monthly':
+                                    currentInvoiceDate = addMonths(currentInvoiceDate, 1);
+                                    break;
+                                case 'quarterly':
+                                    currentInvoiceDate = addMonths(currentInvoiceDate, 3);
+                                    break;
+                                case 'semi_annually':
+                                    currentInvoiceDate = addMonths(currentInvoiceDate, 6);
+                                    break;
+                                case 'annually':
+                                    currentInvoiceDate = addYears(currentInvoiceDate, 1);
+                                    break;
+                                case 'custom':
+                                    if (job.invoiceReminder.customFrequencyValue && job.invoiceReminder.customFrequencyUnit) {
+                                        const value = job.invoiceReminder.customFrequencyValue;
+                                        switch (job.invoiceReminder.customFrequencyUnit) {
+                                            case 'day':
+                                                currentInvoiceDate = addDays(currentInvoiceDate, value);
+                                                break;
+                                            case 'week':
+                                                currentInvoiceDate = addWeeks(currentInvoiceDate, value);
+                                                break;
+                                            case 'month':
+                                                currentInvoiceDate = addMonths(currentInvoiceDate, value);
+                                                break;
+                                            case 'year':
+                                                currentInvoiceDate = addYears(currentInvoiceDate, value);
+                                                break;
+                                            default:
+                                                currentInvoiceDate = addMonths(currentInvoiceDate, 1);
+                                        }
+                                    } else {
+                                        currentInvoiceDate = addMonths(currentInvoiceDate, 1);
+                                    }
+                                    break;
+                                default:
+                                    currentInvoiceDate = addMonths(currentInvoiceDate, 1); // Default
+                            }
+
+                            if (isAfter(currentInvoiceDate, viewEnd)) {
+                                break;
+                            }
+                        }
+                    }
+
                 });
             }
         });
 
         return calendarEvents;
-    }, [contracts, dayNightFilter, statusFilter]);
+    }, [contracts, dayNightFilter, statusFilter, date, view]);
 
     const eventStyleGetter = (event: CalendarEvent) => {
         const status = event.resource.job.status;
 
-        let backgroundColor = "#f59e0b";
+        let backgroundColor = "#f59e0b"; // Default color
 
-        if (status === "work done") {
-            backgroundColor = "#10b981"; // Green
-        } else if (status === "work informed") {
-            backgroundColor = "#3b82f6"; // Blue
-        } else if (status === "work pending") {
-            backgroundColor = "#f59e0b"; // Orange
+        if (event.type === 'invoice') {
+            backgroundColor = "#eab308"; // Yellow-500
+        } else {
+            if (status === "work done") {
+                backgroundColor = "#10b981"; // Green
+            } else if (status === "work informed") {
+                backgroundColor = "#3b82f6"; // Blue
+            } else if (status === "work pending") {
+                backgroundColor = "#f59e0b"; // Orange
+            }
         }
 
         return {
@@ -475,6 +659,10 @@ export const CalendarView = () => {
                     <div className="flex items-center space-x-2">
                         <div className="w-4 h-4 rounded bg-[#3b82f6]"></div>
                         <span className="text-sm text-gray-600">Work Informed</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 rounded bg-[#eab308]"></div>
+                        <span className="text-sm text-gray-600">Invoice</span>
                     </div>
                 </div>
             </div>

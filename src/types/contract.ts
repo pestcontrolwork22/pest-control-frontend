@@ -63,9 +63,9 @@ export interface Job {
 export interface InvoiceReminder {
   startDate: string;
   endDate: string;
-  isAdvanceInvoice: boolean;
-  invoiceAfterJobsClosed: boolean;
   billingFrequency: string;
+  customFrequencyValue?: number;
+  customFrequencyUnit?: "day" | "week" | "month" | "year";
 }
 
 export interface ServicesProduct {
@@ -76,5 +76,5 @@ export interface ServicesProduct {
   subtotalPerYear: number;
   frequencyDays: number;
   frequencyUnit: "day" | "week" | "month" | "year";
-  isEveryDay: boolean;
+  isEvery: boolean;
 }
