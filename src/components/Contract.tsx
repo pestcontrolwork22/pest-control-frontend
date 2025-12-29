@@ -18,7 +18,9 @@ import {
   deleteContract,
   fetchContracts,
   updateContract,
+  fetchContractSuggestions
 } from "@/store/contract/thunk";
+import { clearSuggestions } from "@/store/contract/slice";
 import { useNavigate } from "react-router-dom";
 import { Contract } from "@/types/contract";
 
@@ -33,11 +35,21 @@ export const Contracts = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedContract, setSelectedContract] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const { suggestions } = useSelector((state: RootState) => state.contracts);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
   // Fetch contracts when component mounts or dependencies change
   useEffect(() => {
+    if (searchTerm.length >= 3) {
+      dispatch(fetchContractSuggestions(searchTerm));
+      setShowSuggestions(true);
+    } else {
+      dispatch(clearSuggestions());
+      setShowSuggestions(false);
+    }
+
     dispatch(
       fetchContracts({
         page: currentPage,
@@ -135,7 +147,7 @@ export const Contracts = () => {
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-md p-4 mb-6">
         <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-[250px]">
+          <div className="flex-1 min-w-[250px] relative">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
@@ -149,6 +161,26 @@ export const Contracts = () => {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
+            {/* Suggestions Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                {suggestions.map((contract) => (
+                  <button
+                    key={contract._id}
+                    onClick={() => {
+                      setSearchTerm(contract.title);
+                      setShowSuggestions(false);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors border-b last:border-0"
+                  >
+                    <div className="font-semibold text-gray-800 text-sm">{contract.title}</div>
+                    <div className="text-xs text-gray-500">{contract.contractNumber}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <button className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg flex items-center space-x-2 transition">
             <Filter className="w-5 h-5" />

@@ -38,6 +38,14 @@ export interface ContractsState {
   loading: boolean;
   error: any;
   currentJob: Job | null;
+  suggestions: Contract[];
+}
+
+export interface VisitRecord {
+  visitDate: string;
+  status: "work pending" | "work done" | "work informed";
+  completedAt?: string;
+  notes?: string;
 }
 
 export interface Job {
@@ -50,6 +58,7 @@ export interface Job {
   isTaxExempt: boolean;
   invoiceReminder: InvoiceReminder;
   servicesProducts: ServicesProduct[];
+  visitRecords?: VisitRecord[];
   subtotal: number;
   vat: number;
   grandTotal: number;
