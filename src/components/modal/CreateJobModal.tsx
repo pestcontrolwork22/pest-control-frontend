@@ -396,9 +396,22 @@ export default function JobModal({
                 <input
                   type="date"
                   value={formData.startDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startDate: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const startValue = e.target.value;
+                    let newEndDate = formData.endDate;
+
+                    if (startValue) {
+                      const date = new Date(startValue);
+                      date.setFullYear(date.getFullYear() + 1);
+                      newEndDate = date.toISOString().split("T")[0];
+                    }
+
+                    setFormData({
+                      ...formData,
+                      startDate: startValue,
+                      endDate: newEndDate
+                    });
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -482,15 +495,25 @@ export default function JobModal({
                 <input
                   type="date"
                   value={formData.invoiceReminder.startDate}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const startValue = e.target.value;
+                    let newEndDate = formData.invoiceReminder.endDate;
+
+                    if (startValue) {
+                      const date = new Date(startValue);
+                      date.setFullYear(date.getFullYear() + 1);
+                      newEndDate = date.toISOString().split("T")[0];
+                    }
+
                     setFormData({
                       ...formData,
                       invoiceReminder: {
                         ...formData.invoiceReminder,
-                        startDate: e.target.value,
+                        startDate: startValue,
+                        endDate: newEndDate,
                       },
-                    })
-                  }
+                    });
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 />
               </div>
