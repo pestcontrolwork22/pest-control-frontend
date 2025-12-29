@@ -29,6 +29,21 @@ export const fetchContracts = createAsyncThunk(
       return rejectWithValue(err.response?.data || err.message);
     }
   }
+
+);
+
+export const fetchContractSuggestions = createAsyncThunk(
+  "contracts/fetchSuggestions",
+  async (search: string, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/contracts", {
+        params: { search, limit: 10 },
+      });
+      return res.data.data;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
 );
 
 // Fetch Single Contract

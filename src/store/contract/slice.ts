@@ -9,6 +9,7 @@ import {
   fetchJobById,
   updateContract,
   updateJobForContract,
+  fetchContractSuggestions
 } from "./thunk";
 import { ContractsState } from "@/types/contract";
 
@@ -24,6 +25,7 @@ const initialState: ContractsState = {
   loading: false,
   error: null,
   currentJob: null,
+  suggestions: [],
 };
 
 const contractSlice = createSlice({
@@ -37,9 +39,16 @@ const contractSlice = createSlice({
     clearCurrentJob(state) {
       state.currentJob = null;
     },
+    clearSuggestions(state) {
+      state.suggestions = [];
+    }
   },
 
   extraReducers: (builder) => {
+    builder.addCase(fetchContractSuggestions.fulfilled, (state, action) => {
+      state.suggestions = action.payload;
+    });
+
     // Fetch All Contracts
     builder
       .addCase(fetchContracts.pending, (state) => {
@@ -217,6 +226,6 @@ const contractSlice = createSlice({
   },
 });
 
-export const { clearContract, clearCurrentJob } = contractSlice.actions;
+export const { clearContract, clearCurrentJob, clearSuggestions } = contractSlice.actions;
 
 export default contractSlice.reducer;

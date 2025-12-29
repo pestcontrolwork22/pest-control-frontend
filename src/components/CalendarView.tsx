@@ -32,9 +32,11 @@ import {
     Filter,
 } from "lucide-react";
 import { RootState, AppDispatch } from "@/store";
-import { fetchContracts, updateJobForContract } from "@/store/contract/thunk";
+import { fetchContracts, updateJobForContract, fetchContractSuggestions } from "@/store/contract/thunk";
+import { clearSuggestions } from "@/store/contract/slice";
 import { Job } from "@/types/contract";
 import { useNavigate } from "react-router-dom";
+import { fetchInvoices } from "@/store/invoice/thunk";
 
 // Setup the localizer for react-big-calendar
 const locales = {
@@ -68,6 +70,7 @@ interface CalendarEvent {
         address: string;
         serviceName?: string;
     };
+    status?: string;
 }
 
 
@@ -86,6 +89,8 @@ export const CalendarView = () => {
     const [dayNightFilter, setDayNightFilter] = useState<'all' | 'day' | 'night'>('all');
     const [statusFilter, setStatusFilter] = useState<'all' | 'work pending' | 'work done' | 'work informed'>('all');
     const [searchTerm, setSearchTerm] = useState("");
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const { suggestions } = useSelector((state: RootState) => state.contracts);
 
     const getDateRange = (date: Date, view: View) => {
         let start, end;
@@ -113,6 +118,14 @@ export const CalendarView = () => {
     useEffect(() => {
         const { start, end } = getDateRange(date, view);
 
+        if (searchTerm.length >= 3) {
+            dispatch(fetchContractSuggestions(searchTerm));
+            setShowSuggestions(true);
+        } else {
+            dispatch(clearSuggestions());
+            setShowSuggestions(false);
+        }
+
         // Debounce search
         const timeoutId = setTimeout(() => {
             dispatch(
@@ -124,10 +137,20 @@ export const CalendarView = () => {
                     endDate: end.toISOString()
                 })
             );
+
+            dispatch(
+                fetchInvoices({
+                    scheduledStartDate: start.toISOString(),
+                    scheduledEndDate: end.toISOString()
+                })
+            );
+
         }, 500);
 
         return () => clearTimeout(timeoutId);
     }, [dispatch, date, view, searchTerm]);
+
+    const { items: collectedInvoices } = useSelector((state: RootState) => (state as any).invoices || { items: [] });
 
     const events: CalendarEvent[] = useMemo(() => {
         const calendarEvents: CalendarEvent[] = [];
@@ -136,9 +159,6 @@ export const CalendarView = () => {
         contracts.forEach((contract) => {
             if (contract.jobs && contract.jobs.length > 0) {
                 contract.jobs.forEach((job) => {
-                    // Filter by Job filters (Status / DayNight)
-                    // Note: Invoices might not strictly adhere to these filters, but users likely want to filter everything for that job?
-                    // User request implies listing "jobs" based on frequency.
                     if (dayNightFilter !== 'all' && job.dayType !== dayNightFilter) {
                         return;
                     }
@@ -150,21 +170,20 @@ export const CalendarView = () => {
                     const jobStart = new Date(job.startDate);
                     const jobEnd = new Date(job.endDate);
 
-                    // 1. Generate Service Occurrences
                     if (job.servicesProducts && job.servicesProducts.length > 0) {
                         job.servicesProducts.forEach((service, serviceIdx) => {
                             let currentServiceDate = new Date(jobStart);
                             if (service.frequencyDays && service.frequencyUnit) {
-                                // Optimization: Skip ahead if start date is far in past?
-                                // For now, simple loop to ensure accuracy specially with month/year
-                                // Since we view a month at a time, we could optimize but let's be safe first.
 
                                 let safetyCounter = 0;
                                 while ((isBefore(currentServiceDate, jobEnd) || currentServiceDate.getTime() === jobEnd.getTime()) && safetyCounter < 10000) {
                                     safetyCounter++;
 
-                                    // Check if currentServiceDate is within view range
-                                    // Make sure we compare dates properly
+                                    const record = job.visitRecords?.find(r =>
+                                        new Date(r.visitDate).toDateString() === currentServiceDate.toDateString()
+                                    );
+                                    const status = record ? record.status : job.status;
+
                                     if (currentServiceDate >= viewStart && currentServiceDate <= viewEnd) {
                                         calendarEvents.push({
                                             id: `${contract._id}-${job._id}-service-${serviceIdx}-${currentServiceDate.getTime()}`,
@@ -172,6 +191,7 @@ export const CalendarView = () => {
                                             start: new Date(currentServiceDate),
                                             end: new Date(currentServiceDate),
                                             type: 'job_occurrence',
+                                            status: status,
                                             resource: {
                                                 job,
                                                 contractId: contract._id,
@@ -185,7 +205,6 @@ export const CalendarView = () => {
                                         });
                                     }
 
-                                    // Increment date
                                     if (service.frequencyUnit === 'day') {
                                         currentServiceDate = addDays(currentServiceDate, service.frequencyDays);
                                     } else if (service.frequencyUnit === 'week') {
@@ -195,24 +214,27 @@ export const CalendarView = () => {
                                     } else if (service.frequencyUnit === 'year') {
                                         currentServiceDate = addYears(currentServiceDate, service.frequencyDays);
                                     } else {
-                                        break; // Should not happen
+                                        break;
                                     }
 
-                                    // If we've passed the viewEnd, and also passed the jobEnd (checked in loop condition), we can stop early if we are strictly looking for view range
                                     if (isAfter(currentServiceDate, viewEnd)) {
                                         break;
                                     }
                                 }
                             } else {
-                                // If no frequency, maybe it's a one-off? Just show start date?
-                                // The user said "based on frequency". If not recurring, it might just happen once.
                                 if (jobStart >= viewStart && jobStart <= viewEnd) {
+                                    const record = job.visitRecords?.find(r =>
+                                        new Date(r.visitDate).toDateString() === jobStart.toDateString()
+                                    );
+                                    const status = record ? record.status : job.status;
+
                                     calendarEvents.push({
                                         id: `${contract._id}-${job._id}-once-${serviceIdx}`,
                                         title: `${contract.title} - ${service.serviceType.replace(/_/g, ' ')}`,
                                         start: jobStart,
                                         end: jobStart,
                                         type: 'job_occurrence',
+                                        status: status,
                                         resource: {
                                             job,
                                             contractId: contract._id,
@@ -230,12 +252,18 @@ export const CalendarView = () => {
                     } else {
                         // Fallback if no services defined but job exists (legacy?)
                         if (jobStart >= viewStart && jobStart <= viewEnd) {
+                            const record = job.visitRecords?.find(r =>
+                                new Date(r.visitDate).toDateString() === jobStart.toDateString()
+                            );
+                            const status = record ? record.status : job.status;
+
                             calendarEvents.push({
                                 id: `${contract._id}-${job._id}`,
                                 title: `${contract.title} - ${job.jobType}`,
                                 start: jobStart,
                                 end: jobStart,
                                 type: 'job_occurrence',
+                                status: status,
                                 resource: {
                                     job,
                                     contractId: contract._id,
@@ -261,12 +289,19 @@ export const CalendarView = () => {
                             safetyCounter++;
 
                             if (currentInvoiceDate >= viewStart && currentInvoiceDate <= viewEnd) {
+                                const isCollected = collectedInvoices.some((inv: any) =>
+                                    inv.contractId === contract._id &&
+                                    inv.jobId === job._id &&
+                                    new Date(inv.scheduledDate).toDateString() === currentInvoiceDate.toDateString()
+                                );
+
                                 calendarEvents.push({
                                     id: `${contract._id}-${job._id}-invoice-${currentInvoiceDate.getTime()}`,
-                                    title: `${contract.title} - Invoice`,
+                                    title: `${contract.title} - Invoice${isCollected ? ' (Collected)' : ''}`,
                                     start: new Date(currentInvoiceDate),
                                     end: new Date(currentInvoiceDate),
                                     type: 'invoice',
+                                    status: isCollected ? 'collected' : 'pending',
                                     resource: {
                                         job,
                                         contractId: contract._id,
@@ -334,13 +369,19 @@ export const CalendarView = () => {
     }, [contracts, dayNightFilter, statusFilter, date, view]);
 
     const eventStyleGetter = (event: CalendarEvent) => {
-        const status = event.resource.job.status;
+
 
         let backgroundColor = "#f59e0b"; // Default color
 
         if (event.type === 'invoice') {
-            backgroundColor = "#eab308"; // Yellow-500
+            if (event.status === 'collected') {
+                backgroundColor = "#15803d"; // Darker Green for collected
+            } else {
+                backgroundColor = "#eab308"; // Yellow-500 for pending
+            }
         } else {
+            const status = event.status || event.resource.job.status;
+
             if (status === "work done") {
                 backgroundColor = "#10b981"; // Green
             } else if (status === "work informed") {
@@ -372,29 +413,54 @@ export const CalendarView = () => {
     const handleEventDrop = async ({ event, start }: any) => {
         const { contractId, job } = event.resource;
 
-        const originalStart = new Date(job.startDate).getTime();
-        const originalEnd = new Date(job.endDate).getTime();
-        const duration = originalEnd - originalStart;
-
         const newStartDateObj = new Date(start);
-        const newEndDateObj = new Date(newStartDateObj.getTime() + duration);
 
-        const newStartDate = newStartDateObj.toISOString();
-        const newEndDate = newEndDateObj.toISOString();
+        const timeDiff = newStartDateObj.getTime() - new Date(event.start).getTime();
 
         try {
-            await dispatch(
-                updateJobForContract({
-                    contractId,
-                    jobId: job._id,
-                    updates: {
-                        startDate: newStartDate,
-                        endDate: newEndDate,
-                    },
-                })
-            ).unwrap();
+            if (event.type === 'invoice') {
+                const currentInvoiceStart = new Date(job.invoiceReminder.startDate);
+                const currentInvoiceEnd = new Date(job.invoiceReminder.endDate);
+
+                const newInvoiceStart = new Date(currentInvoiceStart.getTime() + timeDiff).toISOString();
+                const newInvoiceEnd = new Date(currentInvoiceEnd.getTime() + timeDiff).toISOString();
+
+                await dispatch(
+                    updateJobForContract({
+                        contractId,
+                        jobId: job._id,
+                        updates: {
+                            invoiceReminder: {
+                                ...job.invoiceReminder,
+                                startDate: newInvoiceStart,
+                                endDate: newInvoiceEnd,
+                            }
+                        },
+                    })
+                ).unwrap();
+            } else {
+                const newJobStartDate = new Date(new Date(job.startDate).getTime() + timeDiff).toISOString();
+                const newJobEndDate = new Date(new Date(job.endDate).getTime() + timeDiff).toISOString();
+
+                const updatedVisitRecords = job.visitRecords?.map((record: any) => ({
+                    ...record,
+                    visitDate: new Date(new Date(record.visitDate).getTime() + timeDiff).toISOString()
+                })) || [];
+
+                await dispatch(
+                    updateJobForContract({
+                        contractId,
+                        jobId: job._id,
+                        updates: {
+                            startDate: newJobStartDate,
+                            endDate: newJobEndDate,
+                            visitRecords: updatedVisitRecords,
+                        },
+                    })
+                ).unwrap();
+            }
         } catch (error) {
-            console.error("Failed to update job date:", error);
+            console.error("Failed to update date:", error);
         }
     };
 
@@ -402,6 +468,21 @@ export const CalendarView = () => {
         if (!selectedEvent) return;
 
         const { contractId, job } = selectedEvent.resource;
+        const visitDate = selectedEvent.start;
+        const dateString = visitDate.toISOString();
+
+        const newRecord = {
+            visitDate: dateString,
+            status: newStatus,
+            updatedAt: new Date().toISOString()
+        };
+
+        const currentRecords = job.visitRecords ? [...job.visitRecords] : [];
+        const otherRecords = currentRecords.filter(r =>
+            new Date(r.visitDate).toDateString() !== visitDate.toDateString()
+        );
+
+        const updatedRecords = [...otherRecords, newRecord];
 
         try {
             await dispatch(
@@ -409,7 +490,7 @@ export const CalendarView = () => {
                     contractId,
                     jobId: job._id,
                     updates: {
-                        status: newStatus,
+                        visitRecords: updatedRecords,
                     },
                 })
             ).unwrap();
@@ -418,11 +499,12 @@ export const CalendarView = () => {
                 if (!prev) return null;
                 return {
                     ...prev,
+                    status: newStatus,
                     resource: {
                         ...prev.resource,
                         job: {
                             ...prev.resource.job,
-                            status: newStatus as any,
+                            visitRecords: updatedRecords as any
                         },
                     },
                 };
@@ -631,7 +713,7 @@ export const CalendarView = () => {
                 </div>
 
                 {/* Search Input */}
-                <div className="w-full md:w-auto">
+                <div className="w-full md:w-auto relative">
                     <input
                         type="text"
                         placeholder="Search by Title or Pest Number..."
@@ -639,6 +721,25 @@ export const CalendarView = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition shadow-sm"
                     />
+
+                    {/* Suggestions Dropdown */}
+                    {showSuggestions && suggestions.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                            {suggestions.map((contract) => (
+                                <button
+                                    key={contract._id}
+                                    onClick={() => {
+                                        setSearchTerm(contract.title);
+                                        setShowSuggestions(false);
+                                    }}
+                                    className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors border-b last:border-0"
+                                >
+                                    <div className="font-semibold text-gray-800 text-sm">{contract.title}</div>
+                                    <div className="text-xs text-gray-500">{contract.contractNumber}</div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -757,114 +858,120 @@ export const CalendarView = () => {
                                     </div>
                                 </div>
 
-                                {/* Status Update */}
-                                <div className="bg-white border rounded-xl p-4 shadow-sm">
-                                    <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-                                        Job Status
-                                    </h3>
-                                    <div className="space-y-3">
-                                        <select
-                                            value={selectedEvent.resource.job.status}
-                                            onChange={(e) => handleStatusChange(e.target.value)}
-                                            className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-medium ${selectedEvent.resource.job.status === "work done"
-                                                ? "bg-green-50 text-green-700 border-green-200"
-                                                : selectedEvent.resource.job.status ===
-                                                    "work informed"
-                                                    ? "bg-blue-50 text-blue-700 border-blue-200"
-                                                    : "bg-amber-50 text-amber-700 border-amber-200"
-                                                }`}
-                                        >
-                                            <option value="work pending">Work Pending</option>
-                                            <option value="work informed">Work Informed</option>
-                                            <option value="work done">Work Done</option>
-                                        </select>
-                                        <p className="text-xs text-gray-500">
-                                            Update the status to reflect current progress.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Job Timeline */}
-                            <div className="bg-blue-50 rounded-xl p-4">
-                                <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-                                    Job Timeline
-                                </h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-xs text-gray-500 mb-1">Start Date</p>
-                                        <p className="text-lg font-semibold text-gray-800">
-                                            {format(new Date(selectedEvent.resource.job.startDate), "MMM dd, yyyy")}
-                                        </p>
-                                        <p className="text-sm text-gray-600">
-                                            {format(new Date(selectedEvent.resource.job.startDate), "EEEE")}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-500 mb-1">End Date</p>
-                                        <p className="text-lg font-semibold text-gray-800">
-                                            {format(new Date(selectedEvent.resource.job.endDate), "MMM dd, yyyy")}
-                                        </p>
-                                        <p className="text-sm text-gray-600">
-                                            {format(new Date(selectedEvent.resource.job.endDate), "EEEE")}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Job Financial Info */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="bg-green-50 rounded-xl p-4 text-center">
-                                    <p className="text-xs text-gray-600 mb-1">Subtotal</p>
-                                    <p className="text-xl font-bold text-green-700">
-                                        AED {selectedEvent.resource.job.subtotal.toLocaleString()}
-                                    </p>
-                                </div>
-                                <div className="bg-amber-50 rounded-xl p-4 text-center">
-                                    <p className="text-xs text-gray-600 mb-1">VAT</p>
-                                    <p className="text-xl font-bold text-amber-700">
-                                        AED {selectedEvent.resource.job.vat.toLocaleString()}
-                                    </p>
-                                </div>
-                                <div className="bg-blue-50 rounded-xl p-4 text-center">
-                                    <p className="text-xs text-gray-600 mb-1">Grand Total</p>
-                                    <p className="text-xl font-bold text-blue-700">
-                                        AED {selectedEvent.resource.job.grandTotal.toLocaleString()}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Services */}
-                            {selectedEvent.resource.job.servicesProducts &&
-                                selectedEvent.resource.job.servicesProducts.length > 0 && (
-                                    <div>
+                                {/* Status Update - Only for non-invoice events */}
+                                {selectedEvent.type !== 'invoice' && (
+                                    <div className="bg-white border rounded-xl p-4 shadow-sm">
                                         <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-                                            Services & Products
+                                            Job Status
                                         </h3>
-                                        <div className="space-y-2">
-                                            {selectedEvent.resource.job.servicesProducts.map(
-                                                (service, idx) => (
-                                                    <div
-                                                        key={idx}
-                                                        className="bg-gray-50 rounded-lg p-3 flex justify-between items-center"
-                                                    >
-                                                        <div>
-                                                            <p className="font-medium text-gray-800">
-                                                                {service.serviceType}
-                                                            </p>
-                                                            <p className="text-sm text-gray-600">
-                                                                {service.units} units × AED {service.rate}
-                                                            </p>
-                                                        </div>
-                                                        <p className="font-semibold text-gray-800">
-                                                            AED {service.subtotalPerYear.toLocaleString()}
-                                                        </p>
-                                                    </div>
-                                                )
-                                            )}
+                                        <div className="space-y-3">
+                                            <select
+                                                value={selectedEvent.status || selectedEvent.resource.job.status}
+                                                onChange={(e) => handleStatusChange(e.target.value)}
+                                                className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-medium ${(selectedEvent.status || selectedEvent.resource.job.status) === "work done"
+                                                    ? "bg-green-50 text-green-700 border-green-200"
+                                                    : (selectedEvent.status || selectedEvent.resource.job.status) === "work informed"
+                                                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                                                        : "bg-amber-50 text-amber-700 border-amber-200"
+                                                    }`}
+                                            >
+                                                <option value="work pending">Work Pending</option>
+                                                <option value="work informed">Work Informed</option>
+                                                <option value="work done">Work Done</option>
+                                            </select>
+                                            <p className="text-xs text-gray-500">
+                                                Update the status to reflect current progress.
+                                            </p>
                                         </div>
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Job Timeline & Financials - Only for non-invoice events */}
+                            {selectedEvent.type !== 'invoice' && (
+                                <>
+                                    {/* Job Timeline */}
+                                    <div className="bg-blue-50 rounded-xl p-4">
+                                        <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+                                            Job Timeline
+                                        </h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-xs text-gray-500 mb-1">Start Date</p>
+                                                <p className="text-lg font-semibold text-gray-800">
+                                                    {format(new Date(selectedEvent.resource.job.startDate), "MMM dd, yyyy")}
+                                                </p>
+                                                <p className="text-sm text-gray-600">
+                                                    {format(new Date(selectedEvent.resource.job.startDate), "EEEE")}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500 mb-1">End Date</p>
+                                                <p className="text-lg font-semibold text-gray-800">
+                                                    {format(new Date(selectedEvent.resource.job.endDate), "MMM dd, yyyy")}
+                                                </p>
+                                                <p className="text-sm text-gray-600">
+                                                    {format(new Date(selectedEvent.resource.job.endDate), "EEEE")}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Job Financial Info */}
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="bg-green-50 rounded-xl p-4 text-center">
+                                            <p className="text-xs text-gray-600 mb-1">Subtotal</p>
+                                            <p className="text-xl font-bold text-green-700">
+                                                AED {selectedEvent.resource.job.subtotal.toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <div className="bg-amber-50 rounded-xl p-4 text-center">
+                                            <p className="text-xs text-gray-600 mb-1">VAT</p>
+                                            <p className="text-xl font-bold text-amber-700">
+                                                AED {selectedEvent.resource.job.vat.toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <div className="bg-blue-50 rounded-xl p-4 text-center">
+                                            <p className="text-xs text-gray-600 mb-1">Grand Total</p>
+                                            <p className="text-xl font-bold text-blue-700">
+                                                AED {selectedEvent.resource.job.grandTotal.toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Services */}
+                                    {selectedEvent.resource.job.servicesProducts &&
+                                        selectedEvent.resource.job.servicesProducts.length > 0 && (
+                                            <div>
+                                                <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+                                                    Services & Products
+                                                </h3>
+                                                <div className="space-y-2">
+                                                    {selectedEvent.resource.job.servicesProducts.map(
+                                                        (service, idx) => (
+                                                            <div
+                                                                key={idx}
+                                                                className="bg-gray-50 rounded-lg p-3 flex justify-between items-center"
+                                                            >
+                                                                <div>
+                                                                    <p className="font-medium text-gray-800">
+                                                                        {service.serviceType}
+                                                                    </p>
+                                                                    <p className="text-sm text-gray-600">
+                                                                        {service.units} units × AED {service.rate}
+                                                                    </p>
+                                                                </div>
+                                                                <p className="font-semibold text-gray-800">
+                                                                    AED {service.subtotalPerYear.toLocaleString()}
+                                                                </p>
+                                                            </div>
+                                                        )
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                </>
+                            )}
                         </div>
 
                         {/* Modal Footer */}
@@ -875,13 +982,30 @@ export const CalendarView = () => {
                             >
                                 Close
                             </button>
-                            <button
-                                onClick={handleViewJob}
-                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center space-x-2 shadow-md"
-                            >
-                                <Eye className="w-4 h-4" />
-                                <span>View Full Details</span>
-                            </button>
+                            {selectedEvent.type === 'invoice' ? (
+                                <button
+                                    onClick={() => {
+                                        const { contractId, job } = selectedEvent.resource;
+                                        // Pass scheduled date in ISO format
+                                        navigate(`/invoices/collect?contractId=${contractId}&jobId=${job._id}&scheduledDate=${selectedEvent.start.toISOString()}`);
+                                    }}
+                                    className={`px-6 py-2 rounded-lg text-white font-medium flex items-center space-x-2 shadow-md transition ${selectedEvent.status === 'collected'
+                                        ? 'bg-green-600 hover:bg-green-700'
+                                        : 'bg-amber-500 hover:bg-amber-600'
+                                        }`}
+                                >
+                                    <Eye className="w-4 h-4" />
+                                    <span>{selectedEvent.status === 'collected' ? 'View Collection' : 'Collect Invoice'}</span>
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleViewJob}
+                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center space-x-2 shadow-md"
+                                >
+                                    <Eye className="w-4 h-4" />
+                                    <span>View Full Details</span>
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
