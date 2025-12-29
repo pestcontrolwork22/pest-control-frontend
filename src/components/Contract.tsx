@@ -9,6 +9,7 @@ import {
   Eye,
   AlertCircle,
   Loader2,
+  X,
 } from "lucide-react";
 import { AddContractModal } from "./modal/AddContractModal";
 import { Pagination } from "./common/Pagination";
@@ -158,8 +159,17 @@ export const Contracts = () => {
                   setSearchTerm(e.target.value);
                   setCurrentPage(1); // Reset to first page
                 }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  title="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
             {/* Suggestions Dropdown */}
