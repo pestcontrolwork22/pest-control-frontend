@@ -30,6 +30,7 @@ import {
     Sun,
     Moon,
     Filter,
+    X
 } from "lucide-react";
 import { RootState, AppDispatch } from "@/store";
 import { fetchContracts, updateJobForContract, fetchContractSuggestions } from "@/store/contract/thunk";
@@ -87,7 +88,7 @@ export const CalendarView = () => {
         null
     );
     const [dayNightFilter, setDayNightFilter] = useState<'all' | 'day' | 'night'>('all');
-    const [statusFilter, setStatusFilter] = useState<'all' | 'work pending' | 'work done' | 'work informed'>('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'work pending' | 'work done' | 'work informed' | 'invoice'>('all');
     const [searchTerm, setSearchTerm] = useState("");
     const [showSuggestions, setShowSuggestions] = useState(false);
     const { suggestions } = useSelector((state: RootState) => state.contracts);
@@ -163,10 +164,6 @@ export const CalendarView = () => {
                         return;
                     }
 
-                    if (statusFilter !== 'all' && job.status !== statusFilter) {
-                        return;
-                    }
-
                     const jobStart = new Date(job.startDate);
                     const jobEnd = new Date(job.endDate);
 
@@ -174,7 +171,6 @@ export const CalendarView = () => {
                         job.servicesProducts.forEach((service, serviceIdx) => {
                             let currentServiceDate = new Date(jobStart);
                             if (service.frequencyDays && service.frequencyUnit) {
-
                                 let safetyCounter = 0;
                                 while ((isBefore(currentServiceDate, jobEnd) || currentServiceDate.getTime() === jobEnd.getTime()) && safetyCounter < 10000) {
                                     safetyCounter++;
@@ -184,25 +180,27 @@ export const CalendarView = () => {
                                     );
                                     const status = record ? record.status : job.status;
 
-                                    if (currentServiceDate >= viewStart && currentServiceDate <= viewEnd) {
-                                        calendarEvents.push({
-                                            id: `${contract._id}-${job._id}-service-${serviceIdx}-${currentServiceDate.getTime()}`,
-                                            title: `${contract.title} - ${service.serviceType.replace(/_/g, ' ')}`,
-                                            start: new Date(currentServiceDate),
-                                            end: new Date(currentServiceDate),
-                                            type: 'job_occurrence',
-                                            status: status,
-                                            resource: {
-                                                job,
-                                                contractId: contract._id,
-                                                contractTitle: contract.title,
-                                                contractNumber: contract.contractNumber,
-                                                email: contract.email,
-                                                phone: contract.phone,
-                                                address: `${contract.address.city}, ${contract.address.emirate}`,
-                                                serviceName: service.serviceType
-                                            },
-                                        });
+                                    if (statusFilter === 'all' || status === statusFilter) {
+                                        if (currentServiceDate >= viewStart && currentServiceDate <= viewEnd) {
+                                            calendarEvents.push({
+                                                id: `${contract._id}-${job._id}-service-${serviceIdx}-${currentServiceDate.getTime()}`,
+                                                title: `${contract.title} - ${service.serviceType.replace(/_/g, ' ')}`,
+                                                start: new Date(currentServiceDate),
+                                                end: new Date(currentServiceDate),
+                                                type: 'job_occurrence',
+                                                status: status,
+                                                resource: {
+                                                    job,
+                                                    contractId: contract._id,
+                                                    contractTitle: contract.title,
+                                                    contractNumber: contract.contractNumber,
+                                                    email: contract.email,
+                                                    phone: contract.phone,
+                                                    address: `${contract.address.city}, ${contract.address.emirate}`,
+                                                    serviceName: service.serviceType
+                                                },
+                                            });
+                                        }
                                     }
 
                                     if (service.frequencyUnit === 'day') {
@@ -228,24 +226,26 @@ export const CalendarView = () => {
                                     );
                                     const status = record ? record.status : job.status;
 
-                                    calendarEvents.push({
-                                        id: `${contract._id}-${job._id}-once-${serviceIdx}`,
-                                        title: `${contract.title} - ${service.serviceType.replace(/_/g, ' ')}`,
-                                        start: jobStart,
-                                        end: jobStart,
-                                        type: 'job_occurrence',
-                                        status: status,
-                                        resource: {
-                                            job,
-                                            contractId: contract._id,
-                                            contractTitle: contract.title,
-                                            contractNumber: contract.contractNumber,
-                                            email: contract.email,
-                                            phone: contract.phone,
-                                            address: `${contract.address.city}, ${contract.address.emirate}`,
-                                            serviceName: service.serviceType
-                                        },
-                                    });
+                                    if (statusFilter === 'all' || status === statusFilter) {
+                                        calendarEvents.push({
+                                            id: `${contract._id}-${job._id}-once-${serviceIdx}`,
+                                            title: `${contract.title} - ${service.serviceType.replace(/_/g, ' ')}`,
+                                            start: jobStart,
+                                            end: jobStart,
+                                            type: 'job_occurrence',
+                                            status: status,
+                                            resource: {
+                                                job,
+                                                contractId: contract._id,
+                                                contractTitle: contract.title,
+                                                contractNumber: contract.contractNumber,
+                                                email: contract.email,
+                                                phone: contract.phone,
+                                                address: `${contract.address.city}, ${contract.address.emirate}`,
+                                                serviceName: service.serviceType
+                                            },
+                                        });
+                                    }
                                 }
                             }
                         });
@@ -257,23 +257,25 @@ export const CalendarView = () => {
                             );
                             const status = record ? record.status : job.status;
 
-                            calendarEvents.push({
-                                id: `${contract._id}-${job._id}`,
-                                title: `${contract.title} - ${job.jobType}`,
-                                start: jobStart,
-                                end: jobStart,
-                                type: 'job_occurrence',
-                                status: status,
-                                resource: {
-                                    job,
-                                    contractId: contract._id,
-                                    contractTitle: contract.title,
-                                    contractNumber: contract.contractNumber,
-                                    email: contract.email,
-                                    phone: contract.phone,
-                                    address: `${contract.address.city}, ${contract.address.emirate}`,
-                                },
-                            });
+                            if (statusFilter === 'all' || status === statusFilter) {
+                                calendarEvents.push({
+                                    id: `${contract._id}-${job._id}`,
+                                    title: `${contract.title} - ${job.jobType}`,
+                                    start: jobStart,
+                                    end: jobStart,
+                                    type: 'job_occurrence',
+                                    status: status,
+                                    resource: {
+                                        job,
+                                        contractId: contract._id,
+                                        contractTitle: contract.title,
+                                        contractNumber: contract.contractNumber,
+                                        email: contract.email,
+                                        phone: contract.phone,
+                                        address: `${contract.address.city}, ${contract.address.emirate}`,
+                                    },
+                                });
+                            }
                         }
                     }
 
@@ -295,26 +297,27 @@ export const CalendarView = () => {
                                     new Date(inv.scheduledDate).toDateString() === currentInvoiceDate.toDateString()
                                 );
 
-                                calendarEvents.push({
-                                    id: `${contract._id}-${job._id}-invoice-${currentInvoiceDate.getTime()}`,
-                                    title: `${contract.title} - Invoice${isCollected ? ' (Collected)' : ''}`,
-                                    start: new Date(currentInvoiceDate),
-                                    end: new Date(currentInvoiceDate),
-                                    type: 'invoice',
-                                    status: isCollected ? 'collected' : 'pending',
-                                    resource: {
-                                        job,
-                                        contractId: contract._id,
-                                        contractTitle: contract.title,
-                                        contractNumber: contract.contractNumber,
-                                        email: contract.email,
-                                        phone: contract.phone,
-                                        address: `${contract.address.city}, ${contract.address.emirate}`,
-                                    },
-                                });
+                                if (statusFilter === 'all' || statusFilter === 'invoice') {
+                                    calendarEvents.push({
+                                        id: `${contract._id}-${job._id}-invoice-${currentInvoiceDate.getTime()}`,
+                                        title: `${contract.title} - Invoice${isCollected ? ' (Collected)' : ''}`,
+                                        start: new Date(currentInvoiceDate),
+                                        end: new Date(currentInvoiceDate),
+                                        type: 'invoice',
+                                        status: isCollected ? 'collected' : 'pending',
+                                        resource: {
+                                            job,
+                                            contractId: contract._id,
+                                            contractTitle: contract.title,
+                                            contractNumber: contract.contractNumber,
+                                            email: contract.email,
+                                            phone: contract.phone,
+                                            address: `${contract.address.city}, ${contract.address.emirate}`,
+                                        },
+                                    });
+                                }
                             }
 
-                            // Increment
                             switch (job.invoiceReminder.billingFrequency) {
                                 case 'monthly':
                                     currentInvoiceDate = addMonths(currentInvoiceDate, 1);
@@ -352,7 +355,7 @@ export const CalendarView = () => {
                                     }
                                     break;
                                 default:
-                                    currentInvoiceDate = addMonths(currentInvoiceDate, 1); // Default
+                                    currentInvoiceDate = addMonths(currentInvoiceDate, 1);
                             }
 
                             if (isAfter(currentInvoiceDate, viewEnd)) {
@@ -360,13 +363,12 @@ export const CalendarView = () => {
                             }
                         }
                     }
-
                 });
             }
         });
 
         return calendarEvents;
-    }, [contracts, dayNightFilter, statusFilter, date, view]);
+    }, [contracts, dayNightFilter, statusFilter, date, view, collectedInvoices]);
 
     const eventStyleGetter = (event: CalendarEvent) => {
 
@@ -570,6 +572,7 @@ export const CalendarView = () => {
                                 <option value="work pending">Pending</option>
                                 <option value="work informed">Informed</option>
                                 <option value="work done">Done</option>
+                                <option value="invoice">Invoice</option>
                             </select>
                         </div>
 
@@ -615,6 +618,7 @@ export const CalendarView = () => {
                                 <option value="work pending">Work Pending</option>
                                 <option value="work informed">Work Informed</option>
                                 <option value="work done">Work Done</option>
+                                <option value="invoice">Invoice</option>
                             </select>
                         </div>
 
@@ -713,14 +717,29 @@ export const CalendarView = () => {
                 </div>
 
                 {/* Search Input */}
-                <div className="w-full md:w-auto relative">
-                    <input
-                        type="text"
-                        placeholder="Search by Title or Pest Number..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition shadow-sm"
-                    />
+                <div className="w-full md:w-auto relative flex items-center gap-2">
+                    <div className="relative flex-1">
+                        <input
+                            type="text"
+                            placeholder="Search by Title or Pest Number..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition shadow-sm"
+                        />
+                        {searchTerm && (
+                            <button
+                                onClick={() => {
+                                    setSearchTerm("");
+                                    setStatusFilter("all");
+                                    setDayNightFilter("all");
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
+                                title="Clear all filters"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
 
                     {/* Suggestions Dropdown */}
                     {showSuggestions && suggestions.length > 0 && (
