@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Loader2,
   X,
+  FileText
 } from "lucide-react";
 import { AddContractModal } from "./modal/AddContractModal";
 import { Pagination } from "./common/Pagination";
@@ -65,10 +66,8 @@ export const Contracts = () => {
     try {
       await dispatch(createContract(formData)).unwrap();
       setShowAddModal(false);
-      // Optional: Add toast notification for success
     } catch (err) {
       console.error("Failed to create contract:", err);
-      // Optional: Add toast notification for error
     }
   };
 
@@ -114,67 +113,72 @@ export const Contracts = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-6 md:p-8 bg-slate-50 min-h-screen">
+
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Contracts</h1>
-          <p className="text-gray-600 mt-1">Manage all your client contracts</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Contracts</h1>
+          <p className="text-slate-500 mt-1 text-sm">Manage and track all your client agreements.</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition shadow-md"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-indigo-200 active:scale-95"
         >
-          <Plus className="w-5 h-5" />
-          <span>Add Contract</span>
+          <Plus className="w-4 h-4" />
+          <span>New Contract</span>
         </button>
       </div>
 
-      {/* Error Display */}
+      {/* Error Banner */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start space-x-3">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start gap-3 animate-pulse">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-red-800 font-semibold">Error</h3>
-            <p className="text-red-700 text-sm">
+            <h3 className="text-red-800 font-semibold text-sm">Unable to load contracts</h3>
+            <p className="text-red-600 text-xs mt-1">
               {typeof error === "string"
                 ? error
-                : (error as any)?.message || "An error occurred"}
+                : (error as any)?.message || "Please check your connection and try again."}
             </p>
           </div>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-[250px] relative">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+      {/* Toolbar (Search & Filter) */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
+
+          {/* Search Input Group */}
+          <div className="flex-1 relative z-20">
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 transition-colors group-focus-within:text-indigo-500" />
               <input
                 type="text"
-                placeholder="Search contracts..."
+                placeholder="Search by contract number or client..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
-                  setCurrentPage(1); // Reset to first page
+                  setCurrentPage(1);
                 }}
-                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-400"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-colors"
-                  title="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200 transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3 h-3" />
                 </button>
               )}
             </div>
 
             {/* Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+              <div className="absolute w-full mt-2 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                <div className="p-2 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 border-b border-slate-100">
+                  Suggested Results
+                </div>
                 {suggestions.map((contract) => (
                   <button
                     key={contract._id}
@@ -183,132 +187,215 @@ export const Contracts = () => {
                       setShowSuggestions(false);
                       setCurrentPage(1);
                     }}
-                    className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors border-b last:border-0"
+                    className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors border-b border-slate-50 last:border-0 group"
                   >
-                    <div className="font-semibold text-gray-800 text-sm">{contract.title}</div>
-                    <div className="text-xs text-gray-500">{contract.contractNumber}</div>
+                    <div className="font-medium text-slate-700 text-sm group-hover:text-indigo-700">{contract.title}</div>
+                    <div className="text-xs text-slate-500 group-hover:text-indigo-500">{contract.contractNumber}</div>
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <button className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg flex items-center space-x-2 transition">
-            <Filter className="w-5 h-5" />
-            <span>Filter</span>
+
+          {/* Filter Button */}
+          <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-600 text-sm font-medium hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+            <Filter className="w-4 h-4" />
+            <span>Filters</span>
           </button>
         </div>
       </div>
 
-      {/* Loading State */}
+      {/* Main Content Area */}
       {loading ? (
-        <div className="bg-white rounded-xl shadow-md p-12 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Loading contracts...</p>
-          </div>
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-20 flex flex-col items-center justify-center">
+          <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
+          <p className="text-slate-500 font-medium">Loading contracts data...</p>
         </div>
       ) : (
         <>
-          {/* Contracts Table */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-blue-600 text-white">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">
-                      Contract Number
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">
-                      Title
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">
-                      Email
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">
-                      Phone
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {items.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-12 text-center text-gray-500"
-                      >
-                        No contracts found. Click "Add Contract" to create one.
-                      </td>
-                    </tr>
-                  ) : (
-                    items.map((contract: Contract) => (
-                      <tr
-                        key={contract._id}
-                        className="hover:bg-gray-50 transition"
-                      >
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                          {contract.contractNumber}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                          {contract.title}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {contract.email}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {contract.phone}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex justify-center space-x-2">
-                            <button
-                              onClick={() => handleViewContract(contract._id)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                              title="View"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => openEditModal(contract)}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
-                              title="Edit"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => openDeleteConfirm(contract)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+          {/* Empty State */}
+          {items.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12">
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-slate-50 to-slate-100 rounded-full flex items-center justify-center mb-5 ring-8 ring-slate-50">
+                  <FileText className="w-10 h-10 text-slate-300" />
+                </div>
+                <h3 className="text-slate-900 font-semibold text-lg mb-2">No contracts found</h3>
+                <p className="text-slate-500 text-sm max-w-sm mx-auto mb-6">
+                  Try adjusting your search terms or create a new contract to get started.
+                </p>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-all shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Contract
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Mobile Card View */}
+              <div className="lg:hidden space-y-4">
+                {items.map((contract: Contract) => (
+                  <div
+                    key={contract._id}
+                    className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 hover:shadow-md transition-shadow"
+                  >
+                    {/* Card Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                          {contract.title.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900">{contract.title}</h3>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200 mt-1">
+                            {contract.contractNumber}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="px-2 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-full border border-emerald-100">
+                        Active
+                      </span>
+                    </div>
 
-          {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <div className="mt-6 border-t border-gray-100">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={pagination.totalPages}
-                onPageChange={setCurrentPage}
-                totalItems={pagination.total}
-                itemsPerPage={pagination.limit}
-              />
-            </div>
+                    {/* Card Details */}
+                    <div className="space-y-2 mb-4 bg-slate-50/50 rounded-lg p-3 border border-slate-100">
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <span className="font-medium text-slate-400 text-xs w-14">Email</span>
+                        <span className="text-slate-700 truncate flex-1">{contract.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <span className="font-medium text-slate-400 text-xs w-14">Phone</span>
+                        <span className="text-slate-700">{contract.phone}</span>
+                      </div>
+                    </div>
+
+                    {/* Card Actions */}
+                    <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => handleViewContract(contract._id)}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-50 text-indigo-600 font-medium text-xs rounded-lg hover:bg-indigo-100 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => openEditModal(contract)}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-50 text-emerald-600 font-medium text-xs rounded-lg hover:bg-emerald-100 transition-colors"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => openDeleteConfirm(contract)}
+                        className="p-2.5 text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden lg:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gradient-to-r from-slate-50 to-slate-100/50 border-b border-slate-200">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Contract ID</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Client / Title</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact Info</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {items.map((contract: Contract) => (
+                        <tr key={contract._id} className="group hover:bg-indigo-50/30 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 font-mono">
+                              {contract.contractNumber}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm mr-3 shadow-sm">
+                                {contract.title.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="text-sm font-semibold text-slate-900">{contract.title}</div>
+                                <div className="text-xs text-slate-500">Business Client</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col space-y-0.5">
+                              <span className="text-sm text-slate-700">{contract.email}</span>
+                              <span className="text-xs text-slate-400">{contract.phone}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-100">
+                              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                              Active
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex justify-center items-center gap-1">
+                              <button
+                                onClick={() => handleViewContract(contract._id)}
+                                className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                title="View Details"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => openEditModal(contract)}
+                                className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                                title="Edit"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                              <button
+                                onClick={() => openDeleteConfirm(contract)}
+                                className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Pagination Footer */}
+              {pagination.totalPages > 1 && (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-6 py-4 mt-4">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={pagination.totalPages}
+                    onPageChange={setCurrentPage}
+                    totalItems={pagination.total}
+                    itemsPerPage={pagination.limit}
+                  />
+                </div>
+              )}
+            </>
           )}
         </>
       )}
 
-      {/* Add Modal */}
+      {/* --- Modals --- */}
+
       {showAddModal && (
         <AddContractModal
           onClose={() => setShowAddModal(false)}
@@ -316,7 +403,6 @@ export const Contracts = () => {
         />
       )}
 
-      {/* Edit Modal */}
       {showEditModal && selectedContract && (
         <AddContractModal
           onClose={() => {
@@ -329,7 +415,6 @@ export const Contracts = () => {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && selectedContract && (
         <DeleteConfirmModal
           contract={selectedContract}
@@ -344,7 +429,8 @@ export const Contracts = () => {
   );
 };
 
-// Delete Confirmation Modal Component
+// --- Sub-components ---
+
 const DeleteConfirmModal = ({
   contract,
   onClose,
@@ -354,32 +440,36 @@ const DeleteConfirmModal = ({
   onClose: () => void;
   onConfirm: () => void;
 }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-      <div className="flex items-center space-x-3 mb-4">
-        <div className="bg-red-100 p-3 rounded-full">
-          <AlertCircle className="w-6 h-6 text-red-600" />
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    {/* Backdrop */}
+    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
+
+    {/* Modal Content */}
+    <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+      <div className="flex flex-col items-center text-center">
+        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+          <Trash2 className="w-6 h-6 text-red-600" />
         </div>
-        <h2 className="text-xl font-bold text-gray-800">Delete Contract</h2>
-      </div>
-      <p className="text-gray-600 mb-6">
-        Are you sure you want to delete{" "}
-        <span className="font-semibold">{contract?.title}</span>? This action
-        cannot be undone.
-      </p>
-      <div className="flex justify-end space-x-4">
-        <button
-          onClick={onClose}
-          className="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-100"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={onConfirm}
-          className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-        >
-          Delete
-        </button>
+        <h2 className="text-xl font-bold text-slate-900 mb-2">Delete Contract?</h2>
+        <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+          Are you sure you want to delete <span className="font-semibold text-slate-800">{contract?.title}</span>?
+          <br />This action cannot be undone.
+        </p>
+
+        <div className="flex gap-3 w-full">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 px-4 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all active:scale-95"
+          >
+            Delete
+          </button>
+        </div>
       </div>
     </div>
   </div>

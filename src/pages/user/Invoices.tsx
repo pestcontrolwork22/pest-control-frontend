@@ -5,7 +5,6 @@ import { RootState } from "@/store";
 import { fetchContracts, updateJobForContract, fetchContractSuggestions } from "@/store/contract/thunk";
 import { clearSuggestions } from "@/store/contract/slice";
 import { fetchInvoices } from "@/store/invoice/thunk";
-import { Search } from "lucide-react";
 import { Job } from "@/types/contract";
 import { Pagination } from "@/components/common/Pagination";
 import {
@@ -17,7 +16,12 @@ import {
     Loader2,
     ChevronDown,
     ChevronUp,
-    X
+    X,
+    Search,
+    Receipt,
+    CheckCircle2,
+    DollarSign,
+    Briefcase
 } from "lucide-react";
 
 export default function Invoices() {
@@ -68,7 +72,7 @@ export default function Invoices() {
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString("en-US", {
             year: "numeric",
-            month: "long",
+            month: "short",
             day: "numeric",
         });
     };
@@ -138,311 +142,354 @@ export default function Invoices() {
         const amountPerInvoice = dates.length > 0 ? job.grandTotal / dates.length : 0;
 
         return (
-            <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider flex items-center justify-between">
-                    <span>Projected Payment Schedule</span>
-                    <span className="text-xs normal-case bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                        Frequency: {job.invoiceReminder.billingFrequency.replace("_", " ")}
+            <div className="mt-6 bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="px-5 py-3 border-b border-slate-200 bg-slate-100/50 flex justify-between items-center">
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        <DollarSign className="w-3.5 h-3.5" />
+                        Projected Payment Schedule
+                    </h4>
+                    <span className="text-[10px] font-bold uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                        {job.invoiceReminder.billingFrequency.replace("_", " ")}
                     </span>
-                </h4>
-                <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center text-xs font-semibold text-gray-500 mb-2 border-b border-gray-200 pb-1">
-                            <span>Invoice Date</span>
-                            <span>Amount (Inc. VAT)</span>
-                        </div>
-                        {dates.map((date, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-sm">
-                                <span className="text-gray-700">{formatDate(date.toISOString())}</span>
-                                <span className="font-medium text-gray-900">AED {amountPerInvoice.toFixed(2)}</span>
-                            </div>
-                        ))}
-                    </div>
+                </div>
+                <div className="max-h-64 overflow-y-auto custom-scrollbar p-0">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-slate-500 bg-slate-50 uppercase sticky top-0">
+                            <tr>
+                                <th className="px-5 py-3 font-semibold">Invoice Date</th>
+                                <th className="px-5 py-3 font-semibold text-right">Amount (Inc. VAT)</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {dates.map((date, idx) => (
+                                <tr key={idx} className="hover:bg-white transition-colors">
+                                    <td className="px-5 py-3 font-medium text-slate-700">
+                                        {formatDate(date.toISOString())}
+                                    </td>
+                                    <td className="px-5 py-3 text-right font-bold text-slate-900">
+                                        AED {amountPerInvoice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         );
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-slate-100 py-8 px-4">
-            <div className="max-w-7xl mx-auto">
-                <div className="flex items-center justify-between mb-8">
+        <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto space-y-8">
+                
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                            <FileText className="w-8 h-8 text-blue-600" />
+                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
+                            <Receipt className="w-6 h-6 text-indigo-600" />
                             Invoice Management
                         </h1>
-                        <p className="text-gray-500 mt-2">
-                            Manage and track all invoice schedules and collections across contracts.
+                        <p className="text-slate-500 mt-1 text-sm">
+                            Track billing schedules and view collection history.
                         </p>
                     </div>
-                </div>
 
-                {/* Search Bar */}
-                <div className="mb-6 relative">
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search by contract title or number..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full md:w-1/2 pl-12 pr-10 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        />
-                        {searchTerm && (
-                            <button
-                                onClick={() => setSearchTerm("")}
-                                className="absolute right-[51%] top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-colors"
-                                title="Clear search"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
+                    {/* Search Bar */}
+                    <div className="w-full md:w-96 relative z-20">
+                        <div className="relative group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Search contracts..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
+                            />
+                            {searchTerm && (
+                                <button
+                                    onClick={() => setSearchTerm("")}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Suggestions Dropdown */}
+                        {showSuggestions && suggestions.length > 0 && (
+                            <div className="absolute w-full mt-2 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                {suggestions.map((contract) => (
+                                    <button
+                                        key={contract._id}
+                                        onClick={() => {
+                                            setSearchTerm(contract.title);
+                                            setShowSuggestions(false);
+                                        }}
+                                        className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors border-b border-slate-50 last:border-0 group"
+                                    >
+                                        <div className="font-medium text-slate-700 text-sm group-hover:text-indigo-700">{contract.title}</div>
+                                        <div className="text-xs text-slate-500 group-hover:text-indigo-500">{contract.contractNumber}</div>
+                                    </button>
+                                ))}
+                            </div>
                         )}
                     </div>
-
-                    {/* Suggestions Dropdown */}
-                    {showSuggestions && suggestions.length > 0 && (
-                        <div className="absolute z-50 w-full md:w-1/2 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                            {suggestions.map((contract) => (
-                                <button
-                                    key={contract._id}
-                                    onClick={() => {
-                                        setSearchTerm(contract.title);
-                                        setShowSuggestions(false);
-                                    }}
-                                    className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0"
-                                >
-                                    <div className="font-semibold text-gray-900 text-sm">{contract.title}</div>
-                                    <div className="text-xs text-gray-500">{contract.contractNumber}</div>
-                                </button>
-                            ))}
-                        </div>
-                    )}
                 </div>
 
-                <div className="flex space-x-1 bg-gray-200 p-1 rounded-xl mb-6 w-fit">
+                {/* Tab Switcher (Segmented Control) */}
+                <div className="inline-flex p-1.5 bg-slate-200/60 rounded-xl">
                     <button
                         onClick={() => setActiveTab('projected')}
-                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${activeTab === 'projected' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                        className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                            activeTab === 'projected'
+                                ? 'bg-white text-indigo-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                        }`}
                     >
                         Projected Schedule
                     </button>
                     <button
                         onClick={() => setActiveTab('collected')}
-                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${activeTab === 'collected' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                        className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                            activeTab === 'collected'
+                                ? 'bg-white text-indigo-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                        }`}
                     >
                         Collected Invoices
                     </button>
                 </div>
 
-                {activeTab === 'projected' ? (
-                    <div className="space-y-6">
-                        {loading ? (
-                            <div className="text-center py-12">
-                                <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto" />
-                                <p className="text-gray-500 mt-4">Loading contracts...</p>
-                            </div>
-                        ) : contracts.length === 0 ? (
-                            <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-gray-300">
-                                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                <h3 className="text-lg font-semibold text-gray-900">No Invoices Found</h3>
-                                <p className="text-gray-500">No active contracts with invoice reminders available.</p>
-                            </div>
-                        ) : (
-                            contracts.map((contract) => (
-                                contract.jobs.map((job) => (
-                                    <div key={job._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-                                        <div className="p-6">
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="bg-blue-50 p-3 rounded-xl">
-                                                        <FileText className="w-6 h-6 text-blue-600" />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-xl font-bold text-gray-900">{contract.title}</h3>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <span className="text-sm font-medium text-gray-500">{contract.contractNumber}</span>
-                                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                                            <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
-                                                                {job.jobType}
-                                                            </span>
+                {/* Content Area */}
+                <div className="space-y-6">
+                    {activeTab === 'projected' ? (
+                        <>
+                            {loading ? (
+                                <div className="flex flex-col items-center justify-center py-20">
+                                    <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
+                                    <p className="text-slate-500 font-medium">Loading schedules...</p>
+                                </div>
+                            ) : contracts.length === 0 ? (
+                                <div className="bg-white rounded-2xl p-16 text-center border border-dashed border-slate-300">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <FileText className="w-8 h-8 text-slate-400" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-900">No Invoices Found</h3>
+                                    <p className="text-slate-500 mt-1 max-w-sm mx-auto">No active contracts with invoice reminders available matching your search.</p>
+                                </div>
+                            ) : (
+                                <div className="grid gap-6">
+                                    {contracts.map((contract) => (
+                                        contract.jobs.map((job) => (
+                                            <div key={job._id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all hover:shadow-md hover:border-indigo-100">
+                                                <div className="p-6">
+                                                    
+                                                    {/* Top Row: Title & Value */}
+                                                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
+                                                        <div className="flex items-start gap-4">
+                                                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hidden sm:block">
+                                                                <FileText className="w-6 h-6" />
+                                                            </div>
+                                                            <div>
+                                                                <h3 className="text-lg font-bold text-slate-900">{contract.title}</h3>
+                                                                <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                                                                        {contract.contractNumber}
+                                                                    </span>
+                                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                                                                        {job.jobType}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-left md:text-right bg-slate-50 md:bg-transparent p-4 md:p-0 rounded-xl md:rounded-none">
+                                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Contract Value</p>
+                                                            <p className="text-2xl font-bold text-slate-900">AED {job.grandTotal.toLocaleString()}</p>
                                                         </div>
                                                     </div>
-                                                </div>
 
-                                                <div className="text-right">
-                                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Value</p>
-                                                    <p className="text-2xl font-bold text-gray-900">AED {job.grandTotal.toFixed(2)}</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50 rounded-xl p-5 border border-gray-100">
-                                                <div>
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <Calendar className="w-4 h-4 text-gray-500" />
-                                                        <span className="text-sm font-medium text-gray-600">Start Date</span>
-                                                    </div>
-                                                    {editingJobId === job._id ? (
-                                                        <input
-                                                            type="date"
-                                                            value={editDates.startDate}
-                                                            onChange={(e) => setEditDates({ ...editDates, startDate: e.target.value })}
-                                                            className="w-full text-sm bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-blue-500"
-                                                        />
-                                                    ) : (
-                                                        <p className="text-base font-semibold text-gray-900">
-                                                            {formatDate(job.invoiceReminder?.startDate || job.startDate)}
-                                                        </p>
-                                                    )}
-                                                </div>
-
-                                                <div>
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <Clock className="w-4 h-4 text-gray-500" />
-                                                        <span className="text-sm font-medium text-gray-600">End Date</span>
-                                                    </div>
-                                                    {editingJobId === job._id ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <input
-                                                                type="date"
-                                                                value={editDates.endDate}
-                                                                onChange={(e) => setEditDates({ ...editDates, endDate: e.target.value })}
-                                                                className="w-full text-sm bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-blue-500"
-                                                            />
+                                                    {/* Dates Row */}
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-slate-50 rounded-xl border border-slate-100">
+                                                        {/* Start Date */}
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-2 text-slate-500">
+                                                                <Calendar className="w-4 h-4" />
+                                                                <span className="text-xs font-bold uppercase tracking-wide">Start Date</span>
+                                                            </div>
+                                                            {editingJobId === job._id ? (
+                                                                <input
+                                                                    type="date"
+                                                                    value={editDates.startDate}
+                                                                    onChange={(e) => setEditDates({ ...editDates, startDate: e.target.value })}
+                                                                    className="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                                                />
+                                                            ) : (
+                                                                <p className="text-sm font-semibold text-slate-800">
+                                                                    {formatDate(job.invoiceReminder?.startDate || job.startDate)}
+                                                                </p>
+                                                            )}
                                                         </div>
-                                                    ) : (
-                                                        <p className="text-base font-semibold text-gray-900">
-                                                            {formatDate(job.invoiceReminder?.endDate || job.endDate)}
-                                                        </p>
-                                                    )}
-                                                </div>
 
-                                                <div className="flex items-end justify-end">
-                                                    {editingJobId === job._id ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={handleCancelEdit}
-                                                                className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 font-medium"
-                                                            >
-                                                                Cancel
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleSaveInvoice(contract._id, job)}
-                                                                className="flex items-center gap-1 bg-green-600 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors"
-                                                            >
-                                                                <Save className="w-3 h-3" />
-                                                                Save
-                                                            </button>
+                                                        {/* End Date */}
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-2 text-slate-500">
+                                                                <Clock className="w-4 h-4" />
+                                                                <span className="text-xs font-bold uppercase tracking-wide">End Date</span>
+                                                            </div>
+                                                            {editingJobId === job._id ? (
+                                                                <input
+                                                                    type="date"
+                                                                    value={editDates.endDate}
+                                                                    onChange={(e) => setEditDates({ ...editDates, endDate: e.target.value })}
+                                                                    className="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                                                />
+                                                            ) : (
+                                                                <p className="text-sm font-semibold text-slate-800">
+                                                                    {formatDate(job.invoiceReminder?.endDate || job.endDate)}
+                                                                </p>
+                                                            )}
                                                         </div>
-                                                    ) : (
+                                                    </div>
+
+                                                    {/* Actions Footer */}
+                                                    <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                                                         <button
-                                                            onClick={() => handleEditClick(job)}
-                                                            className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-semibold bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors"
+                                                            onClick={() => toggleExpand(job._id)}
+                                                            className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors"
                                                         >
-                                                            <Edit3 className="w-3 h-3" />
-                                                            Edit Dates
+                                                            {expandedJobId === job._id ? (
+                                                                <>Hide Schedule <ChevronUp className="w-4 h-4" /></>
+                                                            ) : (
+                                                                <>View Schedule <ChevronDown className="w-4 h-4" /></>
+                                                            )}
                                                         </button>
-                                                    )}
-                                                </div>
-                                            </div>
 
-                                            {/* Expandable Schedule */}
-                                            <div className="mt-4">
-                                                <button
-                                                    onClick={() => toggleExpand(job._id)}
-                                                    className="flex items-center gap-2 w-full justify-center text-sm font-medium text-gray-500 hover:text-gray-700 py-2 hover:bg-gray-50 rounded-lg transition-colors group"
-                                                >
-                                                    {expandedJobId === job._id ? (
-                                                        <>
-                                                            Hide Payment Schedule <ChevronUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            View Payment Schedule <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
-                                                        </>
-                                                    )}
-                                                </button>
+                                                        {editingJobId === job._id ? (
+                                                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                                <button
+                                                                    onClick={handleCancelEdit}
+                                                                    className="flex-1 sm:flex-none px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-white hover:border-slate-300 text-sm font-medium transition-all"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleSaveInvoice(contract._id, job)}
+                                                                    className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium shadow-sm flex items-center justify-center gap-2 transition-all"
+                                                                >
+                                                                    <Save className="w-4 h-4" /> Save
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleEditClick(job)}
+                                                                className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-200 text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm"
+                                                            >
+                                                                <Edit3 className="w-4 h-4" /> Edit Dates
+                                                            </button>
+                                                        )}
+                                                    </div>
 
-                                                {expandedJobId === job._id && (
-                                                    <div className="mt-4 border-t border-gray-100 pt-4 animate-in slide-in-from-top-2 duration-200">
-                                                        {renderPaymentSchedule(
+                                                    {/* Expanded Schedule */}
+                                                    {expandedJobId === job._id && (
+                                                        renderPaymentSchedule(
                                                             job,
                                                             editingJobId === job._id ? editDates.startDate : (job.invoiceReminder?.startDate || job.startDate),
                                                             editingJobId === job._id ? editDates.endDate : (job.invoiceReminder?.endDate || job.endDate)
-                                                        )}
+                                                        )
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))
+                                    ))}
+                                </div>
+                            )}
+
+                            {contracts.length > 0 && (
+                                <div className="pt-4">
+                                    <Pagination
+                                        currentPage={pagination.page}
+                                        totalPages={pagination.totalPages}
+                                        onPageChange={handlePageChange}
+                                    />
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        // COLLECTED TAB
+                        <div className="space-y-6">
+                            {invoicesLoading ? (
+                                <div className="flex flex-col items-center justify-center py-20">
+                                    <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
+                                    <p className="text-slate-500 font-medium">Loading collected invoices...</p>
+                                </div>
+                            ) : collectedInvoices.length === 0 ? (
+                                <div className="bg-white rounded-2xl p-16 text-center border border-dashed border-slate-300">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Receipt className="w-8 h-8 text-slate-400" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-900">No Collected Invoices</h3>
+                                    <p className="text-slate-500 mt-1 max-w-sm mx-auto">Collected invoices from the calendar will appear here.</p>
+                                </div>
+                            ) : (
+                                <div className="grid gap-6">
+                                    {collectedInvoices.map((invoice: any) => (
+                                        <div key={invoice._id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-all">
+                                            <div className="p-6">
+                                                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hidden sm:block">
+                                                            <CheckCircle2 className="w-6 h-6" />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                                                Invoice #{invoice._id.slice(-6).toUpperCase()}
+                                                            </h3>
+                                                            <p className="text-slate-500 text-sm mt-1 font-medium">{invoice.contractNumber}</p>
+                                                        </div>
                                                     </div>
-                                                )}
+                                                    <div className="text-left md:text-right">
+                                                        <span className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wide mb-2">
+                                                            Collected
+                                                        </span>
+                                                        <p className="text-2xl font-bold text-emerald-600">AED {invoice.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                                                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
+                                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-1">Scheduled Date</span>
+                                                        <span className="text-sm font-semibold text-slate-700">{formatDate(invoice.scheduledDate)}</span>
+                                                    </div>
+                                                    <div className="bg-emerald-50/50 rounded-lg p-4 border border-emerald-100">
+                                                        <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide block mb-1">Collection Date</span>
+                                                        <span className="text-sm font-semibold text-emerald-800">{formatDate(invoice.collectionDate)}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="border-t border-slate-100 pt-4">
+                                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1">
+                                                        <Briefcase className="w-3 h-3" /> Line Items
+                                                    </p>
+                                                    <div className="space-y-2">
+                                                        {invoice.items.map((item: any, idx: number) => (
+                                                            <div key={idx} className="flex justify-between text-sm py-2 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 px-2 rounded">
+                                                                <div className="text-slate-700">
+                                                                    <span className="font-medium">{item.description}</span>
+                                                                    <span className="text-slate-400 ml-2 text-xs">x{item.units}</span>
+                                                                </div>
+                                                                <span className="font-semibold text-slate-900">AED {(item.subtotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))
-                            ))
-                        )}
-
-                        {contracts.length > 0 && (
-                            <div className="mt-8">
-                                <Pagination
-                                    currentPage={pagination.page}
-                                    totalPages={pagination.totalPages}
-                                    onPageChange={handlePageChange}
-                                />
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        {invoicesLoading ? (
-                            <div className="text-center py-12">
-                                <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto" />
-                                <p className="text-gray-500 mt-4">Loading collected invoices...</p>
-                            </div>
-                        ) : collectedInvoices.length === 0 ? (
-                            <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-gray-300">
-                                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                <h3 className="text-lg font-semibold text-gray-900">No Collected Invoices</h3>
-                                <p className="text-gray-500">Go to calendar and collect invoices from scheduled events.</p>
-                            </div>
-                        ) : (
-                            collectedInvoices.map((invoice: any) => (
-                                <div key={invoice._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                            <h3 className="text-lg font-bold text-gray-900">
-                                                Invoice #{invoice._id.slice(-6).toUpperCase()}
-                                            </h3>
-                                            <p className="text-gray-500 text-sm">{invoice.contractNumber}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className="text-2xl font-bold text-green-600">AED {invoice.grandTotal.toFixed(2)}</span>
-                                            <p className="text-xs text-gray-400">Collected</p>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                                        <div className="bg-gray-50 p-3 rounded-lg">
-                                            <p className="text-xs text-gray-500 mb-1">Scheduled Date</p>
-                                            <p className="font-semibold">{new Date(invoice.scheduledDate).toLocaleDateString()}</p>
-                                        </div>
-                                        <div className="bg-green-50 p-3 rounded-lg">
-                                            <p className="text-xs text-green-700 mb-1">Collection Date</p>
-                                            <p className="font-semibold text-green-800">{new Date(invoice.collectionDate).toLocaleDateString()}</p>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Items</p>
-                                        <div className="space-y-2">
-                                            {invoice.items.map((item: any, idx: number) => (
-                                                <div key={idx} className="flex justify-between text-sm py-1 border-b border-gray-50 last:border-0">
-                                                    <span>{item.description} <span className="text-gray-400 text-xs">x{item.units}</span></span>
-                                                    <span className="font-medium">{(item.subtotal || 0).toFixed(2)}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
-                            ))
-                        )}
-                    </div>
-                )}
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

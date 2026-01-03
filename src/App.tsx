@@ -9,6 +9,8 @@ import JobViewPage from "./components/JobView";
 import { CalendarView } from "./components/CalendarView";
 import Invoices from "./pages/user/Invoices";
 import CollectInvoice from "./pages/user/CollectInvoice";
+import AboutPage from "./pages/user/AboutUs";
+import SettingsPage from "./pages/user/Settings";
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
             <Route path="/Contracts" element={<Contract />} />
             <Route path="/calendar" element={<CalendarView />} />
             <Route path="/invoices" element={<Invoices />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/invoices/collect" element={<CollectInvoice />} />
             <Route path="/contracts/:id" element={<ContractView />} />
             <Route

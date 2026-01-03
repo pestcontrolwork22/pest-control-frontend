@@ -30,7 +30,10 @@ import {
     Sun,
     Moon,
     Filter,
-    X
+    X,
+    Search,
+    CheckCircle2,
+    AlertCircle
 } from "lucide-react";
 import { RootState, AppDispatch } from "@/store";
 import { fetchContracts, updateJobForContract, fetchContractSuggestions } from "@/store/contract/thunk";
@@ -73,7 +76,6 @@ interface CalendarEvent {
     };
     status?: string;
 }
-
 
 export const CalendarView = () => {
     const dispatch = useDispatch<AppDispatch>();
@@ -370,40 +372,47 @@ export const CalendarView = () => {
         return calendarEvents;
     }, [contracts, dayNightFilter, statusFilter, date, view, collectedInvoices]);
 
+    // --- Styles for Events ---
     const eventStyleGetter = (event: CalendarEvent) => {
-
-
-        let backgroundColor = "#f59e0b"; // Default color
+        let backgroundColor = "#f59e0b"; // Default Amber-500
+        let borderLeftColor = "#b45309";
 
         if (event.type === 'invoice') {
             if (event.status === 'collected') {
-                backgroundColor = "#15803d"; // Darker Green for collected
+                backgroundColor = "#15803d"; // Green-700
+                borderLeftColor = "#14532d";
             } else {
-                backgroundColor = "#eab308"; // Yellow-500 for pending
+                backgroundColor = "#ca8a04"; // Yellow-600
+                borderLeftColor = "#854d0e";
             }
         } else {
             const status = event.status || event.resource.job.status;
 
             if (status === "work done") {
-                backgroundColor = "#10b981"; // Green
+                backgroundColor = "#10b981"; // Emerald-500
+                borderLeftColor = "#047857";
             } else if (status === "work informed") {
-                backgroundColor = "#3b82f6"; // Blue
+                backgroundColor = "#3b82f6"; // Blue-500
+                borderLeftColor = "#1d4ed8";
             } else if (status === "work pending") {
-                backgroundColor = "#f59e0b"; // Orange
+                backgroundColor = "#f59e0b"; // Amber-500
+                borderLeftColor = "#b45309";
             }
         }
 
         return {
             style: {
                 backgroundColor,
-                borderRadius: "6px",
-                opacity: 0.9,
+                borderRadius: "4px",
+                opacity: 1,
                 color: "white",
                 border: "none",
+                borderLeft: `4px solid ${borderLeftColor}`,
                 display: "block",
-                fontWeight: "500",
-                fontSize: "0.875rem",
+                fontWeight: "600",
+                fontSize: "0.75rem",
                 padding: "2px 6px",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.1)"
             },
         };
     };
@@ -414,9 +423,7 @@ export const CalendarView = () => {
 
     const handleEventDrop = async ({ event, start }: any) => {
         const { contractId, job } = event.resource;
-
         const newStartDateObj = new Date(start);
-
         const timeDiff = newStartDateObj.getTime() - new Date(event.start).getTime();
 
         try {
@@ -532,167 +539,75 @@ export const CalendarView = () => {
         }
     };
 
+    // --- Custom Toolbar Component ---
     const CustomToolbar = ({ label, onNavigate, onView }: any) => {
         return (
-            <div className="bg-white rounded-t-xl px-6 py-4 border-b border-gray-200">
-                <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-                    {/* Navigation */}
-                    <div className="flex items-center w-full lg:w-auto justify-between lg:justify-start space-x-3">
-                        <div className="flex items-center space-x-2">
+            <div className="bg-white rounded-t-2xl px-6 py-5 border-b border-slate-200">
+                <div className="flex flex-col xl:flex-row items-center justify-between gap-4">
+
+                    {/* Navigation Group */}
+                    <div className="flex items-center gap-4 w-full xl:w-auto">
+                        <div className="flex items-center bg-slate-100 rounded-lg p-1">
                             <button
                                 onClick={() => onNavigate("PREV")}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                                className="p-1.5 hover:bg-white hover:text-indigo-600 rounded-md transition-all text-slate-500"
                                 title="Previous"
                             >
-                                <ChevronLeft className="w-5 h-5 text-gray-700" />
+                                <ChevronLeft className="w-5 h-5" />
                             </button>
                             <button
                                 onClick={() => onNavigate("TODAY")}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
+                                className="px-3 py-1 text-sm font-semibold text-slate-700 hover:text-indigo-600 transition-colors"
                             >
                                 Today
                             </button>
                             <button
                                 onClick={() => onNavigate("NEXT")}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                                className="p-1.5 hover:bg-white hover:text-indigo-600 rounded-md transition-all text-slate-500"
                                 title="Next"
                             >
-                                <ChevronRight className="w-5 h-5 text-gray-700" />
+                                <ChevronRight className="w-5 h-5" />
                             </button>
                         </div>
 
-                        {/* Mobile Status Filter */}
-                        <div className="lg:hidden">
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value as any)}
-                                className="w-32 bg-gray-100 border-none rounded-lg text-xs font-medium p-2 outline-none focus:ring-0"
-                            >
-                                <option value="all">All Status</option>
-                                <option value="work pending">Pending</option>
-                                <option value="work informed">Informed</option>
-                                <option value="work done">Done</option>
-                                <option value="invoice">Invoice</option>
-                            </select>
-                        </div>
-
-                        {/* Mobile Day/Night Filter */}
-                        <div className="flex lg:hidden bg-gray-100 rounded-lg p-1">
-                            <button
-                                onClick={() => setDayNightFilter('all')}
-                                className={`p-2 rounded-md transition ${dayNightFilter === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
-                                title="All"
-                            >
-                                <span className="text-xs font-bold">ALL</span>
-                            </button>
-                            <button
-                                onClick={() => setDayNightFilter('day')}
-                                className={`p-2 rounded-md transition ${dayNightFilter === 'day' ? 'bg-white text-amber-500 shadow-sm' : 'text-gray-500'}`}
-                                title="Day"
-                            >
-                                <Sun className="w-4 h-4" />
-                            </button>
-                            <button
-                                onClick={() => setDayNightFilter('night')}
-                                className={`p-2 rounded-md transition ${dayNightFilter === 'night' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}
-                                title="Night"
-                            >
-                                <Moon className="w-4 h-4" />
-                            </button>
-                        </div>
+                        <h2 className="text-xl font-bold text-slate-800 tracking-tight">{label}</h2>
                     </div>
 
-                    {/* Current Date Label */}
-                    <h2 className="text-xl lg:text-2xl font-bold text-gray-800">{label}</h2>
+                    {/* Filters Group */}
+                    <div className="flex flex-col md:flex-row items-center gap-3 w-full xl:w-auto">
 
-                    <div className="flex items-center gap-4">
-                        {/* Desktop Status Filter */}
-                        <div className="hidden lg:flex items-center space-x-2 bg-gray-100 rounded-lg p-1 px-2">
-                            <Filter className="w-4 h-4 text-gray-500" />
+                        {/* Status Filter */}
+                        <div className="relative group w-full md:w-auto">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                <Filter className="w-4 h-4" />
+                            </div>
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                                className="bg-transparent border-none text-sm font-medium text-gray-700 outline-none focus:ring-0 cursor-pointer"
+                                className="w-full md:w-44 pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer hover:border-slate-300"
                             >
-                                <option value="all">All Status</option>
-                                <option value="work pending">Work Pending</option>
-                                <option value="work informed">Work Informed</option>
-                                <option value="work done">Work Done</option>
-                                <option value="invoice">Invoice</option>
+                                <option value="all">All Statuses</option>
+                                <option value="work pending">Pending</option>
+                                <option value="work informed">Informed</option>
+                                <option value="work done">Completed</option>
+                                <option value="invoice">Invoices</option>
                             </select>
-                        </div>
-
-                        {/* Desktop Day/Night Filter */}
-                        <div className="hidden lg:flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-                            <button
-                                onClick={() => setDayNightFilter('all')}
-                                className={`px-3 py-2 rounded-md transition font-medium text-sm ${dayNightFilter === 'all'
-                                    ? "bg-white text-gray-800 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                            >
-                                All Time
-                            </button>
-                            <button
-                                onClick={() => setDayNightFilter('day')}
-                                className={`px-3 py-2 rounded-md transition font-medium text-sm flex items-center space-x-1 ${dayNightFilter === 'day'
-                                    ? "bg-white text-amber-600 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                            >
-                                <Sun className="w-4 h-4" />
-                                <span>Day</span>
-                            </button>
-                            <button
-                                onClick={() => setDayNightFilter('night')}
-                                className={`px-3 py-2 rounded-md transition font-medium text-sm flex items-center space-x-1 ${dayNightFilter === 'night'
-                                    ? "bg-white text-indigo-600 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                            >
-                                <Moon className="w-4 h-4" />
-                                <span>Night</span>
-                            </button>
                         </div>
 
                         {/* View Switcher */}
-                        <div className="hidden lg:flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-                            <button
-                                onClick={() => onView("month")}
-                                className={`px-4 py-2 rounded-md transition font-medium text-sm ${view === "month"
-                                    ? "bg-white text-blue-600 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                            >
-                                Month
-                            </button>
-                            <button
-                                onClick={() => onView("week")}
-                                className={`px-4 py-2 rounded-md transition font-medium text-sm ${view === "week"
-                                    ? "bg-white text-blue-600 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                            >
-                                Week
-                            </button>
-                            <button
-                                onClick={() => onView("day")}
-                                className={`px-4 py-2 rounded-md transition font-medium text-sm ${view === "day"
-                                    ? "bg-white text-blue-600 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                            >
-                                Day
-                            </button>
-                            <button
-                                onClick={() => onView("agenda")}
-                                className={`px-4 py-2 rounded-md transition font-medium text-sm ${view === "agenda"
-                                    ? "bg-white text-blue-600 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
-                                    }`}
-                            >
-                                Agenda
-                            </button>
+                        <div className="flex bg-slate-100 rounded-lg p-1 w-full md:w-auto">
+                            {['month', 'week', 'day'].map((v) => (
+                                <button
+                                    key={v}
+                                    onClick={() => onView(v)}
+                                    className={`flex-1 md:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === v
+                                            ? "bg-white text-indigo-600 shadow-sm"
+                                            : "text-slate-500 hover:text-slate-800"
+                                        }`}
+                                >
+                                    {v.charAt(0).toUpperCase() + v.slice(1)}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -701,49 +616,44 @@ export const CalendarView = () => {
     };
 
     return (
-        <div className="p-6 bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
-            {/* Header */}
-            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center space-x-3 mb-2 md:mb-0">
-                    <div className="bg-blue-600 p-3 rounded-xl">
-                        <CalendarIcon className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-800">Jobs Calendar</h1>
-                        <p className="text-gray-600 mt-1">
-                            View and manage all scheduled jobs
-                        </p>
-                    </div>
+        <div className="p-4 md:p-6 lg:p-8 bg-slate-50 min-h-screen">
+
+            {/* Page Header */}
+            <div className="mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
+                        <CalendarIcon className="w-6 h-6 text-indigo-600" />
+                        Jobs Calendar
+                    </h1>
+                    <p className="text-slate-500 mt-1 text-sm">
+                        Manage scheduled operations and invoice reminders.
+                    </p>
                 </div>
 
-                {/* Search Input */}
-                <div className="w-full md:w-auto relative flex items-center gap-2">
-                    <div className="relative flex-1">
+                {/* Global Search */}
+                <div className="w-full lg:w-96 relative z-20">
+                    <div className="relative group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
                         <input
                             type="text"
-                            placeholder="Search by Title or Pest Number..."
+                            placeholder="Search contracts or clients..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition shadow-sm"
+                            className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
                         />
                         {searchTerm && (
                             <button
-                                onClick={() => {
-                                    setSearchTerm("");
-                                    setStatusFilter("all");
-                                    setDayNightFilter("all");
-                                }}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
-                                title="Clear all filters"
+                                onClick={() => { setSearchTerm(""); setStatusFilter("all"); setDayNightFilter("all"); }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
                             >
-                                <X className="w-4 h-4" />
+                                <X className="w-3 h-3" />
                             </button>
                         )}
                     </div>
 
                     {/* Suggestions Dropdown */}
                     {showSuggestions && suggestions.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                        <div className="absolute w-full mt-2 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                             {suggestions.map((contract) => (
                                 <button
                                     key={contract._id}
@@ -751,10 +661,10 @@ export const CalendarView = () => {
                                         setSearchTerm(contract.title);
                                         setShowSuggestions(false);
                                     }}
-                                    className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors border-b last:border-0"
+                                    className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors border-b border-slate-50 last:border-0 group"
                                 >
-                                    <div className="font-semibold text-gray-800 text-sm">{contract.title}</div>
-                                    <div className="text-xs text-gray-500">{contract.contractNumber}</div>
+                                    <div className="font-medium text-slate-700 text-sm group-hover:text-indigo-700">{contract.title}</div>
+                                    <div className="text-xs text-slate-500 group-hover:text-indigo-500">{contract.contractNumber}</div>
                                 </button>
                             ))}
                         </div>
@@ -762,39 +672,63 @@ export const CalendarView = () => {
                 </div>
             </div>
 
-            {/* Legend */}
-            <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                    Job Status Legend:
-                </h3>
-                <div className="flex flex-wrap gap-4">
-                    <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 rounded bg-[#f59e0b]"></div>
-                        <span className="text-sm text-gray-600">Work Pending</span>
+            {/* Filter Chips / Legend */}
+            <div className="flex flex-wrap gap-3 mb-6 items-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm w-fit">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2">Filters:</span>
+
+                {/* Day/Night Toggle */}
+                <div className="flex items-center bg-slate-100 rounded-lg p-1 mr-4">
+                    <button
+                        onClick={() => setDayNightFilter('all')}
+                        className={`px-3 py-1 rounded text-xs font-bold transition-all ${dayNightFilter === 'all' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}
+                    >
+                        ALL
+                    </button>
+                    <button
+                        onClick={() => setDayNightFilter('day')}
+                        className={`p-1 rounded transition-all ${dayNightFilter === 'day' ? 'bg-white text-amber-500 shadow-sm' : 'text-slate-400'}`}
+                        title="Day Jobs"
+                    >
+                        <Sun className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => setDayNightFilter('night')}
+                        className={`p-1 rounded transition-all ${dayNightFilter === 'night' ? 'bg-white text-indigo-900 shadow-sm' : 'text-slate-400'}`}
+                        title="Night Jobs"
+                    >
+                        <Moon className="w-4 h-4" />
+                    </button>
+                </div>
+
+                {/* Legend / Quick Filter */}
+                <div className="flex flex-wrap gap-4 items-center">
+                    <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        <span className="text-xs font-medium text-slate-600">Pending</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 rounded bg-[#10b981]"></div>
-                        <span className="text-sm text-gray-600">Work Done</span>
+                    <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                        <span className="text-xs font-medium text-slate-600">Informed</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 rounded bg-[#3b82f6]"></div>
-                        <span className="text-sm text-gray-600">Work Informed</span>
+                    <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span className="text-xs font-medium text-slate-600">Done</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 rounded bg-[#eab308]"></div>
-                        <span className="text-sm text-gray-600">Invoice</span>
+                    <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-yellow-600"></span>
+                        <span className="text-xs font-medium text-slate-600">Invoice</span>
                     </div>
                 </div>
             </div>
 
-            {/* Calendar */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            {/* Calendar Component */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <DnDCalendar
                     localizer={localizer}
                     events={events}
                     startAccessor="start"
                     endAccessor="end"
-                    style={{ height: 700 }}
+                    style={{ height: 750 }}
                     view={view}
                     onView={handleViewChange}
                     date={date}
@@ -814,190 +748,108 @@ export const CalendarView = () => {
             {/* Event Details Modal */}
             {selectedEvent && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                    onClick={() => setSelectedEvent(null)}
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
                 >
-                    <div
-                        className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]"
-                        onClick={(e) => e.stopPropagation()}
-                    >
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setSelectedEvent(null)} />
+
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden">
+
                         {/* Modal Header */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-5 shrink-0 rounded-t-2xl">
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-start space-x-3">
-                                    <div className="bg-white bg-opacity-20 p-2 rounded-lg">
-                                        <Briefcase className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-2xl font-bold">
-                                            {selectedEvent.resource.job.jobType}
-                                        </h2>
-                                        <p className="text-blue-100 mt-1">
+                        <div className="bg-white px-6 py-5 border-b border-slate-100 flex items-start justify-between z-10">
+                            <div className="flex items-start gap-4">
+                                <div className={`p-3 rounded-xl ${selectedEvent.type === 'invoice' ? 'bg-amber-100 text-amber-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                                    {selectedEvent.type === 'invoice' ? <AlertCircle className="w-6 h-6" /> : <Briefcase className="w-6 h-6" />}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-900">
+                                        {selectedEvent.resource.job.jobType.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                                    </h2>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
                                             {selectedEvent.resource.contractNumber}
-                                        </p>
+                                        </span>
+                                        <span className="text-sm text-slate-500 truncate max-w-[200px]">
+                                            {selectedEvent.resource.contractTitle}
+                                        </span>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => setSelectedEvent(null)}
-                                    className="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition"
-                                >
-                                    ✕
-                                </button>
                             </div>
+                            <button onClick={() => setSelectedEvent(null)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-lg transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
 
                         {/* Modal Body */}
-                        <div className="p-6 space-y-6 overflow-y-auto">
-                            {/* Status and Contract Info Row */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Contract Info */}
-                                <div className="bg-gray-50 rounded-xl p-4">
-                                    <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-                                        Contract Details
-                                    </h3>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center space-x-2 text-gray-700">
-                                            <Briefcase className="w-4 h-4 text-blue-600" />
-                                            <span className="font-medium">
-                                                {selectedEvent.resource.contractTitle}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center space-x-2 text-gray-600">
-                                            <Mail className="w-4 h-4 text-blue-600" />
-                                            <span>{selectedEvent.resource.email}</span>
-                                        </div>
-                                        <div className="flex items-center space-x-2 text-gray-600">
-                                            <Phone className="w-4 h-4 text-blue-600" />
-                                            <span>{selectedEvent.resource.phone}</span>
-                                        </div>
-                                        <div className="flex items-center space-x-2 text-gray-600">
-                                            <MapPin className="w-4 h-4 text-blue-600" />
-                                            <span>{selectedEvent.resource.address}</span>
-                                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50/50">
+
+                            {/* 1. Status Selector (For non-invoices) */}
+                            {selectedEvent.type !== 'invoice' && (
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Update Status</label>
+                                    <select
+                                        value={selectedEvent.status || selectedEvent.resource.job.status}
+                                        onChange={(e) => handleStatusChange(e.target.value)}
+                                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all cursor-pointer"
+                                    >
+                                        <option value="work pending">Work Pending</option>
+                                        <option value="work informed">Work Informed</option>
+                                        <option value="work done">Work Done</option>
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* 2. Contact Info */}
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Client Contact</h3>
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3 text-sm text-slate-600">
+                                        <Mail className="w-4 h-4 text-indigo-400" />
+                                        <span>{selectedEvent.resource.email}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm text-slate-600">
+                                        <Phone className="w-4 h-4 text-indigo-400" />
+                                        <span>{selectedEvent.resource.phone}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm text-slate-600">
+                                        <MapPin className="w-4 h-4 text-indigo-400" />
+                                        <span>{selectedEvent.resource.address}</span>
                                     </div>
                                 </div>
-
-                                {/* Status Update - Only for non-invoice events */}
-                                {selectedEvent.type !== 'invoice' && (
-                                    <div className="bg-white border rounded-xl p-4 shadow-sm">
-                                        <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-                                            Job Status
-                                        </h3>
-                                        <div className="space-y-3">
-                                            <select
-                                                value={selectedEvent.status || selectedEvent.resource.job.status}
-                                                onChange={(e) => handleStatusChange(e.target.value)}
-                                                className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-medium ${(selectedEvent.status || selectedEvent.resource.job.status) === "work done"
-                                                    ? "bg-green-50 text-green-700 border-green-200"
-                                                    : (selectedEvent.status || selectedEvent.resource.job.status) === "work informed"
-                                                        ? "bg-blue-50 text-blue-700 border-blue-200"
-                                                        : "bg-amber-50 text-amber-700 border-amber-200"
-                                                    }`}
-                                            >
-                                                <option value="work pending">Work Pending</option>
-                                                <option value="work informed">Work Informed</option>
-                                                <option value="work done">Work Done</option>
-                                            </select>
-                                            <p className="text-xs text-gray-500">
-                                                Update the status to reflect current progress.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
-                            {/* Job Timeline & Financials - Only for non-invoice events */}
+                            {/* 3. Job Specifics */}
                             {selectedEvent.type !== 'invoice' && (
-                                <>
-                                    {/* Job Timeline */}
-                                    <div className="bg-blue-50 rounded-xl p-4">
-                                        <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-                                            Job Timeline
-                                        </h3>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <p className="text-xs text-gray-500 mb-1">Start Date</p>
-                                                <p className="text-lg font-semibold text-gray-800">
-                                                    {format(new Date(selectedEvent.resource.job.startDate), "MMM dd, yyyy")}
-                                                </p>
-                                                <p className="text-sm text-gray-600">
-                                                    {format(new Date(selectedEvent.resource.job.startDate), "EEEE")}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500 mb-1">End Date</p>
-                                                <p className="text-lg font-semibold text-gray-800">
-                                                    {format(new Date(selectedEvent.resource.job.endDate), "MMM dd, yyyy")}
-                                                </p>
-                                                <p className="text-sm text-gray-600">
-                                                    {format(new Date(selectedEvent.resource.job.endDate), "EEEE")}
-                                                </p>
-                                            </div>
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Service Details</h3>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="text-center bg-slate-50 p-2 rounded-lg border border-slate-100 flex-1 mr-2">
+                                            <span className="block text-xs text-slate-400 mb-1">Date</span>
+                                            <span className="block text-sm font-bold text-slate-800">{format(new Date(selectedEvent.resource.job.startDate), "MMM dd")}</span>
+                                        </div>
+                                        <div className="text-center bg-slate-50 p-2 rounded-lg border border-slate-100 flex-1 ml-2">
+                                            <span className="block text-xs text-slate-400 mb-1">Total</span>
+                                            <span className="block text-sm font-bold text-slate-800">AED {selectedEvent.resource.job.grandTotal.toLocaleString()}</span>
                                         </div>
                                     </div>
 
-                                    {/* Job Financial Info */}
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="bg-green-50 rounded-xl p-4 text-center">
-                                            <p className="text-xs text-gray-600 mb-1">Subtotal</p>
-                                            <p className="text-xl font-bold text-green-700">
-                                                AED {selectedEvent.resource.job.subtotal.toLocaleString()}
-                                            </p>
-                                        </div>
-                                        <div className="bg-amber-50 rounded-xl p-4 text-center">
-                                            <p className="text-xs text-gray-600 mb-1">VAT</p>
-                                            <p className="text-xl font-bold text-amber-700">
-                                                AED {selectedEvent.resource.job.vat.toLocaleString()}
-                                            </p>
-                                        </div>
-                                        <div className="bg-blue-50 rounded-xl p-4 text-center">
-                                            <p className="text-xs text-gray-600 mb-1">Grand Total</p>
-                                            <p className="text-xl font-bold text-blue-700">
-                                                AED {selectedEvent.resource.job.grandTotal.toLocaleString()}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Services */}
-                                    {selectedEvent.resource.job.servicesProducts &&
-                                        selectedEvent.resource.job.servicesProducts.length > 0 && (
+                                    {selectedEvent.resource.job.servicesProducts?.map((service, idx) => (
+                                        <div key={idx} className="flex justify-between items-center py-2 border-t border-slate-100">
                                             <div>
-                                                <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-                                                    Services & Products
-                                                </h3>
-                                                <div className="space-y-2">
-                                                    {selectedEvent.resource.job.servicesProducts.map(
-                                                        (service, idx) => (
-                                                            <div
-                                                                key={idx}
-                                                                className="bg-gray-50 rounded-lg p-3 flex justify-between items-center"
-                                                            >
-                                                                <div>
-                                                                    <p className="font-medium text-gray-800">
-                                                                        {service.serviceType}
-                                                                    </p>
-                                                                    <p className="text-sm text-gray-600">
-                                                                        {service.units} units × AED {service.rate}
-                                                                    </p>
-                                                                </div>
-                                                                <p className="font-semibold text-gray-800">
-                                                                    AED {service.subtotalPerYear.toLocaleString()}
-                                                                </p>
-                                                            </div>
-                                                        )
-                                                    )}
-                                                </div>
+                                                <p className="text-sm font-medium text-slate-800">{service.serviceType}</p>
+                                                <p className="text-xs text-slate-500">{service.units} units × AED {service.rate}</p>
                                             </div>
-                                        )}
-                                </>
+                                            <span className="text-sm font-semibold text-slate-700">AED {service.subtotalPerYear.toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 shrink-0 rounded-b-2xl">
+                        <div className="bg-white px-6 py-4 border-t border-slate-100 flex justify-end gap-3 z-10">
                             <button
                                 onClick={() => setSelectedEvent(null)}
-                                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition font-medium"
+                                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm"
                             >
                                 Close
                             </button>
@@ -1005,24 +857,21 @@ export const CalendarView = () => {
                                 <button
                                     onClick={() => {
                                         const { contractId, job } = selectedEvent.resource;
-                                        // Pass scheduled date in ISO format
                                         navigate(`/invoices/collect?contractId=${contractId}&jobId=${job._id}&scheduledDate=${selectedEvent.start.toISOString()}`);
                                     }}
-                                    className={`px-6 py-2 rounded-lg text-white font-medium flex items-center space-x-2 shadow-md transition ${selectedEvent.status === 'collected'
-                                        ? 'bg-green-600 hover:bg-green-700'
-                                        : 'bg-amber-500 hover:bg-amber-600'
+                                    className={`px-5 py-2.5 rounded-xl text-white font-medium shadow-lg active:scale-95 transition-all text-sm flex items-center gap-2 ${selectedEvent.status === 'collected' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-200'
                                         }`}
                                 >
-                                    <Eye className="w-4 h-4" />
-                                    <span>{selectedEvent.status === 'collected' ? 'View Collection' : 'Collect Invoice'}</span>
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    {selectedEvent.status === 'collected' ? 'View Collection' : 'Collect Invoice'}
                                 </button>
                             ) : (
                                 <button
                                     onClick={handleViewJob}
-                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center space-x-2 shadow-md"
+                                    className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 shadow-lg shadow-indigo-200 active:scale-95 transition-all text-sm flex items-center gap-2"
                                 >
                                     <Eye className="w-4 h-4" />
-                                    <span>View Full Details</span>
+                                    View Full Details
                                 </button>
                             )}
                         </div>
