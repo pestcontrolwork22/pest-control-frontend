@@ -9,6 +9,8 @@ interface Contract {
   status: 'expired' | 'expiring';
 }
 
+
+
 interface Schedule {
   id: string;
   client: string;
