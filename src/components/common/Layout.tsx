@@ -5,11 +5,10 @@ import {
   Home,
   Users,
   ReceiptText,
-  ClipboardList,
   Settings,
   LogOut,
   Menu,
-  X,
+  X
 } from "lucide-react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 
@@ -21,100 +20,145 @@ export const Layout = () => {
     { icon: Home, label: "Dashboard", path: "/" },
     { icon: FileText, label: "Contracts", path: "/contracts" },
     { icon: Calendar, label: "Calendar", path: "/calendar" },
-     { icon: ReceiptText, label: "Invoices", path: "/invoices" },
-    { icon: Users, label: "Clients", path: "/clients" },
-    { icon: ClipboardList, label: "Services", path: "/services" },
+    { icon: ReceiptText, label: "Invoices", path: "/invoices" },
+    { icon: Users, label: "About Us", path: "/about" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
-      {/* Header */}
-      <header className="bg-blue-600 text-white shadow-lg fixed w-full z-30">
-        <div className="px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 rounded-lg hover:bg-blue-700 transition"
+    <div className="min-h-screen bg-slate-50 flex">
+
+      {/* --- Sidebar (Desktop) --- */}
+      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 border-r border-slate-800 fixed h-full z-30">
+        {/* Brand Logo Area */}
+        <div className="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
+          {/* Replace with actual logo SVG if needed */}
+          <div className="img-wrapper w-12 mr-5">
+            <img src="/logo.png" alt="Logo" className="w-100" />
+          </div>
+          <span className="text-white font-bold tracking-tight text-lg">Tripower</span>
+        </div>
+
+        {/* Navigation Items */}
+        <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
+          <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Main Menu</p>
+          {menuItems.map((item, index) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={index}
+                to={item.path}
+                className={`group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-900/20"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                  }`}
               >
-                {sidebarOpen ? (
-                  <X className="w-6 h-6" />
-                ) : (
-                  <Menu className="w-6 h-6" />
-                )}
-              </button>
-              <div className="bg-white p-2 rounded-lg">
-                <svg
-                  className="w-8 h-8 text-blue-600"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Pest Control</h1>
-                <p className="text-blue-100 text-xs hidden sm:block">
-                  Professional Pest Management
-                </p>
-              </div>
+                <div className="flex items-center">
+                  <item.icon className={`w-5 h-5 mr-3 transition-colors ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                  {item.label}
+                </div>
+                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white/50"></div>}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* User Profile Footer */}
+        <div className="p-4 border-t border-slate-800 bg-slate-900">
+          <div className="flex items-center gap-3">
+
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm font-medium text-white truncate">Pest Control</p>
+              <p className="text-xs text-slate-500 truncate">Administrator</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:block text-right">
-                <p className="text-sm font-semibold">John Doe</p>
-                <p className="text-xs text-blue-200">Administrator</p>
-              </div>
-              <button
-                onClick={() => {
-                  localStorage.removeItem("token");
-                  localStorage.removeItem("user");
-                  window.location.href = "/login";
-                }}
-                className="bg-blue-700 hover:bg-blue-800 p-2 rounded-lg transition"
-                title="Logout"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                window.location.href = "/login";
+              }}
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
-      </header>
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed left-0 top-20 h-full bg-white shadow-xl z-20 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } lg:translate-x-0 w-64`}
-      >
-        <nav className="p-4 space-y-2">
-          {menuItems.map((item, index) => (
-            <Link
-              key={index}
-              to={item.path}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition ${location.pathname === item.path
-                ? "bg-blue-600 text-white shadow-md"
-                : "text-gray-700 hover:bg-blue-50"
-                }`}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
-            </Link>
-          ))}
-        </nav>
       </aside>
 
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
+      {/* --- Mobile Sidebar (Drawer) --- */}
+      <div className={`fixed inset-0 z-40 lg:hidden ${sidebarOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+        {/* Backdrop */}
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-10 lg:hidden"
+          className={`absolute inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}
           onClick={() => setSidebarOpen(false)}
         />
-      )}
 
-      {/* Main Content */}
-      <main className="pt-20 lg:ml-64 transition-all duration-300">
-        <Outlet />
-      </main>
+        {/* Drawer Content */}
+        <aside
+          className={`absolute left-0 top-0 h-full w-72 bg-slate-900 shadow-2xl transition-transform duration-300 ease-out flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        >
+          <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
+            <span className="text-white font-bold text-lg">Tripower</span>
+            <button onClick={() => setSidebarOpen(false)} className="text-slate-400 hover:text-white">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+          <nav className="flex-1 p-4 space-y-1">
+            {menuItems.map((item, index) => (
+              <Link
+                key={index}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${location.pathname === item.path
+                  ? "bg-indigo-600 text-white"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  }`}
+              >
+                <item.icon className="w-5 h-5 mr-3" />
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="p-4 border-t border-slate-800">
+            <button
+              onClick={() => {
+                localStorage.removeItem("token");
+                window.location.href = "/login";
+              }}
+              className="flex items-center w-full px-4 py-3 text-sm font-medium text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              <LogOut className="w-5 h-5 mr-3" />
+              Sign Out
+            </button>
+          </div>
+        </aside>
+      </div>
+
+      {/* --- Main Content Area --- */}
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-64 transition-all duration-300">
+
+        {/* Header (Mobile Only / Sticky) */}
+        <header className="sticky top-0 z-20 h-16 flex-none bg-white/80 backdrop-blur-md border-b border-slate-200 lg:hidden px-4 flex items-center justify-between">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <span className="font-semibold text-slate-800">Tripower Services</span>
+          <div className="img-wrapper w-12">
+            <img src="/logo.png" alt="Logo" className="w-100 " />
+          </div> {/* Placeholder for alignment */}
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 relative">
+          {/* Subtle background decoration */}
+          <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-white to-transparent -z-10 pointer-events-none" />
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 };
