@@ -15,7 +15,9 @@ import {
   DollarSign,
   FileText,
   CheckCircle,
-  XCircle
+  XCircle,
+  MessageSquare,
+  Save
 } from "lucide-react";
 import JobModal from "./modal/CreateJobModal";
 
@@ -35,6 +37,10 @@ export default function JobViewPage() {
     endDate: ""
   });
 
+  const [isEditingRemarks, setIsEditingRemarks] = useState(false);
+  const [remarksText, setRemarksText] = useState("");
+  const [savingRemarks, setSavingRemarks] = useState(false);
+
   useEffect(() => {
     if (job?.invoiceReminder) {
       setInvoiceDates({
@@ -42,7 +48,29 @@ export default function JobViewPage() {
         endDate: new Date(job.invoiceReminder.endDate).toISOString().split('T')[0]
       });
     }
+    if (job) {
+      setRemarksText(job.remarks || "");
+    }
   }, [job]);
+
+  const handleRemarksSave = async () => {
+    if (!job || !contractId) return;
+    setSavingRemarks(true);
+    try {
+      await dispatch(
+        updateJobForContract({
+          contractId,
+          jobId: job._id,
+          updates: { remarks: remarksText },
+        })
+      ).unwrap();
+      setIsEditingRemarks(false);
+    } catch (error) {
+      console.error("Failed to save remarks:", error);
+    } finally {
+      setSavingRemarks(false);
+    }
+  };
 
   const handleInvoiceSave = async () => {
     if (!job || !contractId) return;
@@ -528,6 +556,57 @@ export default function JobViewPage() {
                     </span>
                   </div>
                 </div>
+              </div>
+
+              {/* Remarks Section */}
+              <div className="mb-8 bg-violet-50 rounded-xl p-6 border border-violet-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-violet-600" />
+                    Job Remarks
+                  </h3>
+                  {!isEditingRemarks ? (
+                    <button
+                      onClick={() => setIsEditingRemarks(true)}
+                      className="flex items-center gap-2 text-sm font-semibold text-violet-700 hover:text-violet-800 bg-violet-100 hover:bg-violet-200 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      {remarksText ? "Edit Remarks" : "Add Remarks"}
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => { setIsEditingRemarks(false); setRemarksText(job?.remarks || ""); }}
+                        className="text-sm font-semibold text-gray-600 hover:text-gray-700 px-3 py-1.5"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleRemarksSave}
+                        disabled={savingRemarks}
+                        className="flex items-center gap-2 text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 px-3 py-1.5 rounded-lg transition-colors shadow-sm disabled:opacity-60"
+                      >
+                        <Save className="w-4 h-4" />
+                        {savingRemarks ? "Saving..." : "Save"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {isEditingRemarks ? (
+                  <textarea
+                    value={remarksText}
+                    onChange={(e) => setRemarksText(e.target.value)}
+                    placeholder="Add remarks, e.g. timing changes, special instructions..."
+                    rows={4}
+                    className="w-full px-4 py-3 border border-violet-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none bg-white text-gray-800 text-sm resize-none"
+                  />
+                ) : remarksText ? (
+                  <div className="bg-white/70 rounded-lg p-4 border border-violet-100 text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                    {remarksText}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-sm italic">No remarks added yet. Click "Add Remarks" to include notes.</p>
+                )}
               </div>
 
               {/* Action Buttons */}
