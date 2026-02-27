@@ -65,6 +65,7 @@ export interface Job {
   _id: string;
   status: "work pending" | "work done" | "work informed";
   dayType: "day" | "night";
+  remarks?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -84,6 +85,8 @@ export interface ServicesProduct {
   rate: number;
   subtotalPerYear: number;
   frequencyDays: number;
-  frequencyUnit: "day" | "week" | "month" | "year";
+  frequencyUnit: "day" | "week" | "month" | "year" | "custom";
   isEvery: boolean;
+  customFrequencyValue?: number;
+  customFrequencyUnit?: "day" | "week" | "month" | "year";
 }

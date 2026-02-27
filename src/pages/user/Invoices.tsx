@@ -181,7 +181,7 @@ export default function Invoices() {
     return (
         <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto space-y-8">
-                
+
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
@@ -240,21 +240,19 @@ export default function Invoices() {
                 <div className="inline-flex p-1.5 bg-slate-200/60 rounded-xl">
                     <button
                         onClick={() => setActiveTab('projected')}
-                        className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                            activeTab === 'projected'
+                        className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${activeTab === 'projected'
                                 ? 'bg-white text-indigo-600 shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700'
-                        }`}
+                            }`}
                     >
                         Projected Schedule
                     </button>
                     <button
                         onClick={() => setActiveTab('collected')}
-                        className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                            activeTab === 'collected'
+                        className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${activeTab === 'collected'
                                 ? 'bg-white text-indigo-600 shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700'
-                        }`}
+                            }`}
                     >
                         Collected Invoices
                     </button>
@@ -283,7 +281,7 @@ export default function Invoices() {
                                         contract.jobs.map((job) => (
                                             <div key={job._id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all hover:shadow-md hover:border-indigo-100">
                                                 <div className="p-6">
-                                                    
+
                                                     {/* Top Row: Title & Value */}
                                                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
                                                         <div className="flex items-start gap-4">

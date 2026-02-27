@@ -33,7 +33,11 @@ import {
     X,
     Search,
     CheckCircle2,
-    AlertCircle
+    AlertCircle,
+    MessageSquare,
+    Save,
+    Lock,
+    CheckCheck
 } from "lucide-react";
 import { RootState, AppDispatch } from "@/store";
 import { fetchContracts, updateJobForContract, fetchContractSuggestions } from "@/store/contract/thunk";
@@ -73,8 +77,55 @@ interface CalendarEvent {
         phone: string;
         address: string;
         serviceName?: string;
+        visitNotes?: string;
     };
     status?: string;
+}
+
+function computeAllScheduledDates(job: Job): Date[] {
+    const dates: Date[] = [];
+    const jobStart = new Date(job.startDate);
+    const jobEnd = new Date(job.endDate);
+
+    if (!job.servicesProducts || job.servicesProducts.length === 0) return dates;
+
+    job.servicesProducts.forEach((service) => {
+        if (!service.frequencyDays || !service.frequencyUnit) {
+            dates.push(new Date(jobStart));
+            return;
+        }
+        let cur = new Date(jobStart);
+        let safety = 0;
+        while ((isBefore(cur, jobEnd) || cur.getTime() === jobEnd.getTime()) && safety < 10000) {
+            safety++;
+            dates.push(new Date(cur));
+            if (service.frequencyUnit === 'custom') {
+                const v = (service as any).customFrequencyValue || 1;
+                const u = (service as any).customFrequencyUnit || 'day';
+                if (u === 'day') cur = addDays(cur, v);
+                else if (u === 'week') cur = addWeeks(cur, v);
+                else if (u === 'month') cur = addMonths(cur, v);
+                else if (u === 'year') cur = addYears(cur, v);
+                else break;
+            } else if (service.frequencyUnit === 'day') {
+                cur = addDays(cur, service.frequencyDays);
+            } else if (service.frequencyUnit === 'week') {
+                cur = addWeeks(cur, service.frequencyDays);
+            } else if (service.frequencyUnit === 'month') {
+                cur = addMonths(cur, service.frequencyDays);
+            } else if (service.frequencyUnit === 'year') {
+                cur = addYears(cur, service.frequencyDays);
+            } else break;
+        }
+    });
+
+    const seen = new Set<string>();
+    return dates.filter(d => {
+        const k = d.toDateString();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+    });
 }
 
 export const CalendarView = () => {
@@ -86,14 +137,21 @@ export const CalendarView = () => {
 
     const [view, setView] = useState<View>("month");
     const [date, setDate] = useState(new Date());
-    const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
-        null
-    );
+    const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
     const [dayNightFilter, setDayNightFilter] = useState<'all' | 'day' | 'night'>('all');
     const [statusFilter, setStatusFilter] = useState<'all' | 'work pending' | 'work done' | 'work informed' | 'invoice'>('all');
     const [searchTerm, setSearchTerm] = useState("");
     const [showSuggestions, setShowSuggestions] = useState(false);
     const { suggestions } = useSelector((state: RootState) => state.contracts);
+
+    const [remarksText, setRemarksText] = useState("");
+    const [isEditingRemarks, setIsEditingRemarks] = useState(false);
+    const [savingRemarks, setSavingRemarks] = useState(false);
+
+    const [closeJobConfirm, setCloseJobConfirm] = useState<{
+        contractId: string;
+        job: Job;
+    } | null>(null);
 
     const getDateRange = (date: Date, view: View) => {
         let start, end;
@@ -129,7 +187,6 @@ export const CalendarView = () => {
             setShowSuggestions(false);
         }
 
-        // Debounce search
         const timeoutId = setTimeout(() => {
             dispatch(
                 fetchContracts({
@@ -147,7 +204,6 @@ export const CalendarView = () => {
                     scheduledEndDate: end.toISOString()
                 })
             );
-
         }, 500);
 
         return () => clearTimeout(timeoutId);
@@ -199,13 +255,28 @@ export const CalendarView = () => {
                                                     email: contract.email,
                                                     phone: contract.phone,
                                                     address: `${contract.address.city}, ${contract.address.emirate}`,
-                                                    serviceName: service.serviceType
+                                                    serviceName: service.serviceType,
+                                                    visitNotes: record?.notes || ""
                                                 },
                                             });
                                         }
                                     }
 
-                                    if (service.frequencyUnit === 'day') {
+                                    if (service.frequencyUnit === 'custom') {
+                                        const customVal = (service as any).customFrequencyValue || 1;
+                                        const customUnit = (service as any).customFrequencyUnit || 'day';
+                                        if (customUnit === 'day') {
+                                            currentServiceDate = addDays(currentServiceDate, customVal);
+                                        } else if (customUnit === 'week') {
+                                            currentServiceDate = addWeeks(currentServiceDate, customVal);
+                                        } else if (customUnit === 'month') {
+                                            currentServiceDate = addMonths(currentServiceDate, customVal);
+                                        } else if (customUnit === 'year') {
+                                            currentServiceDate = addYears(currentServiceDate, customVal);
+                                        } else {
+                                            break;
+                                        }
+                                    } else if (service.frequencyUnit === 'day') {
                                         currentServiceDate = addDays(currentServiceDate, service.frequencyDays);
                                     } else if (service.frequencyUnit === 'week') {
                                         currentServiceDate = addWeeks(currentServiceDate, service.frequencyDays);
@@ -244,7 +315,8 @@ export const CalendarView = () => {
                                                 email: contract.email,
                                                 phone: contract.phone,
                                                 address: `${contract.address.city}, ${contract.address.emirate}`,
-                                                serviceName: service.serviceType
+                                                serviceName: service.serviceType,
+                                                visitNotes: record?.notes || ""
                                             },
                                         });
                                     }
@@ -252,7 +324,7 @@ export const CalendarView = () => {
                             }
                         });
                     } else {
-                        // Fallback if no services defined but job exists (legacy?)
+                        // Fallback if no services defined
                         if (jobStart >= viewStart && jobStart <= viewEnd) {
                             const record = job.visitRecords?.find(r =>
                                 new Date(r.visitDate).toDateString() === jobStart.toDateString()
@@ -275,6 +347,7 @@ export const CalendarView = () => {
                                         email: contract.email,
                                         phone: contract.phone,
                                         address: `${contract.address.city}, ${contract.address.emirate}`,
+                                        visitNotes: record?.notes || ""
                                     },
                                 });
                             }
@@ -374,28 +447,28 @@ export const CalendarView = () => {
 
     // --- Styles for Events ---
     const eventStyleGetter = (event: CalendarEvent) => {
-        let backgroundColor = "#f59e0b"; // Default Amber-500
+        let backgroundColor = "#f59e0b";
         let borderLeftColor = "#b45309";
 
         if (event.type === 'invoice') {
             if (event.status === 'collected') {
-                backgroundColor = "#15803d"; // Green-700
+                backgroundColor = "#15803d";
                 borderLeftColor = "#14532d";
             } else {
-                backgroundColor = "#ca8a04"; // Yellow-600
-                borderLeftColor = "#854d0e";
+                backgroundColor = "#ef4444";
+                borderLeftColor = "#b91c1c";
             }
         } else {
             const status = event.status || event.resource.job.status;
 
             if (status === "work done") {
-                backgroundColor = "#10b981"; // Emerald-500
+                backgroundColor = "#10b981";
                 borderLeftColor = "#047857";
             } else if (status === "work informed") {
-                backgroundColor = "#3b82f6"; // Blue-500
+                backgroundColor = "#3b82f6";
                 borderLeftColor = "#1d4ed8";
             } else if (status === "work pending") {
-                backgroundColor = "#f59e0b"; // Amber-500
+                backgroundColor = "#f59e0b";
                 borderLeftColor = "#b45309";
             }
         }
@@ -417,8 +490,43 @@ export const CalendarView = () => {
         };
     };
 
+    // Custom event component to show remarks indicator
+    const CustomEventComponent = ({ event }: { event: CalendarEvent }) => {
+        // Only show 💬 if THIS occurrence's visitNotes has content
+        const hasRemarks = !!(event.resource.visitNotes && event.resource.visitNotes.trim());
+        return (
+            <span style={{ display: "flex", alignItems: "center", gap: "3px", width: "100%", overflow: "hidden" }}>
+                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {event.title}
+                </span>
+                {hasRemarks && (
+                    <span
+                        title={event.resource.visitNotes}
+                        style={{
+                            flexShrink: 0,
+                            background: "rgba(255,255,255,0.3)",
+                            borderRadius: "50%",
+                            width: "14px",
+                            height: "14px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "8px",
+                            lineHeight: 1,
+                        }}
+                    >
+                        💬
+                    </span>
+                )}
+            </span>
+        );
+    };
+
     const handleSelectEvent = (event: CalendarEvent) => {
         setSelectedEvent(event);
+        // Seed remarks from THIS occurrence's visit record notes (not job-level)
+        setRemarksText(event.resource.visitNotes || "");
+        setIsEditingRemarks(false);
     };
 
     const handleEventDrop = async ({ event, start }: any) => {
@@ -473,6 +581,28 @@ export const CalendarView = () => {
         }
     };
 
+    // ─── Check if this is the last schedule and all are done ────────────────
+    const isLastScheduleCompleted = (job: Job, updatedRecords: any[], visitDate: Date): boolean => {
+        const allScheduledDates = computeAllScheduledDates(job);
+        if (allScheduledDates.length === 0) return false;
+
+        // Determine the last scheduled date
+        const lastDate = allScheduledDates.reduce((latest, d) => d > latest ? d : latest, allScheduledDates[0]);
+
+        // Is the current visit the last one?
+        if (visitDate.toDateString() !== lastDate.toDateString()) return false;
+
+        // Are all scheduled dates either in updatedRecords as 'work done'?
+        const allDone = allScheduledDates.every(scheduledDate => {
+            const record = updatedRecords.find(
+                r => new Date(r.visitDate).toDateString() === scheduledDate.toDateString()
+            );
+            return record && record.status === 'work done';
+        });
+
+        return allDone;
+    };
+
     const handleStatusChange = async (newStatus: string) => {
         if (!selectedEvent) return;
 
@@ -518,8 +648,85 @@ export const CalendarView = () => {
                     },
                 };
             });
+
+            // Check if last schedule completed
+            if (newStatus === 'work done') {
+                const jobWithUpdatedRecords = { ...job, visitRecords: updatedRecords as any };
+                if (isLastScheduleCompleted(jobWithUpdatedRecords, updatedRecords, visitDate)) {
+                    setCloseJobConfirm({ contractId, job: jobWithUpdatedRecords });
+                }
+            }
+
         } catch (error) {
             console.error("Failed to update job status:", error);
+        }
+    };
+
+    const handleSaveRemarks = async () => {
+        if (!selectedEvent) return;
+        const { contractId, job } = selectedEvent.resource;
+        const visitDate = selectedEvent.start;
+        const dateString = visitDate.toISOString();
+        setSavingRemarks(true);
+        try {
+            // Update the notes on the visitRecord for this specific date only
+            const currentRecords = job.visitRecords ? [...job.visitRecords] : [];
+            const existingRecord = currentRecords.find(
+                r => new Date(r.visitDate).toDateString() === visitDate.toDateString()
+            );
+            const otherRecords = currentRecords.filter(
+                r => new Date(r.visitDate).toDateString() !== visitDate.toDateString()
+            );
+            const updatedRecord = {
+                ...(existingRecord || { visitDate: dateString, status: job.status }),
+                notes: remarksText,
+            };
+            const updatedVisitRecords = [...otherRecords, updatedRecord];
+
+            await dispatch(
+                updateJobForContract({
+                    contractId,
+                    jobId: job._id,
+                    updates: { visitRecords: updatedVisitRecords },
+                })
+            ).unwrap();
+
+            setIsEditingRemarks(false);
+            // Update local event state so modal reflects new notes immediately
+            setSelectedEvent(prev => prev ? {
+                ...prev,
+                resource: {
+                    ...prev.resource,
+                    visitNotes: remarksText,
+                    job: {
+                        ...prev.resource.job,
+                        visitRecords: updatedVisitRecords as any
+                    }
+                }
+            } : null);
+        } catch (err) {
+            console.error("Failed to save remarks:", err);
+        } finally {
+            setSavingRemarks(false);
+        }
+    };
+
+    const handleCloseJob = async () => {
+        if (!closeJobConfirm) return;
+        const { contractId, job } = closeJobConfirm;
+        try {
+            await dispatch(
+                updateJobForContract({
+                    contractId,
+                    jobId: job._id,
+                    updates: { status: 'work done' },
+                })
+            ).unwrap();
+        } catch (err) {
+            console.error("Failed to close job:", err);
+        } finally {
+            setCloseJobConfirm(null);
+            setSelectedEvent(null);
         }
     };
 
@@ -601,8 +808,8 @@ export const CalendarView = () => {
                                     key={v}
                                     onClick={() => onView(v)}
                                     className={`flex-1 md:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === v
-                                            ? "bg-white text-indigo-600 shadow-sm"
-                                            : "text-slate-500 hover:text-slate-800"
+                                        ? "bg-white text-indigo-600 shadow-sm"
+                                        : "text-slate-500 hover:text-slate-800"
                                         }`}
                                 >
                                     {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -715,8 +922,12 @@ export const CalendarView = () => {
                         <span className="text-xs font-medium text-slate-600">Done</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-yellow-600"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
                         <span className="text-xs font-medium text-slate-600">Invoice</span>
+                    </div>
+                    <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+                        <span className="text-xs">💬</span>
+                        <span className="text-xs font-medium text-slate-600">Has Remarks</span>
                     </div>
                 </div>
             </div>
@@ -738,6 +949,7 @@ export const CalendarView = () => {
                     eventPropGetter={eventStyleGetter}
                     components={{
                         toolbar: CustomToolbar,
+                        event: CustomEventComponent,
                     }}
                     popup
                     selectable
@@ -745,11 +957,9 @@ export const CalendarView = () => {
                 />
             </div>
 
-            {/* Event Details Modal */}
+            {/* ─── Event Details Modal ─── */}
             {selectedEvent && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-                >
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setSelectedEvent(null)} />
 
                     <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200 overflow-hidden">
@@ -757,7 +967,7 @@ export const CalendarView = () => {
                         {/* Modal Header */}
                         <div className="bg-white px-6 py-5 border-b border-slate-100 flex items-start justify-between z-10">
                             <div className="flex items-start gap-4">
-                                <div className={`p-3 rounded-xl ${selectedEvent.type === 'invoice' ? 'bg-amber-100 text-amber-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                                <div className={`p-3 rounded-xl ${selectedEvent.type === 'invoice' ? 'bg-red-50 text-red-600' : 'bg-indigo-50 text-indigo-600'}`}>
                                     {selectedEvent.type === 'invoice' ? <AlertCircle className="w-6 h-6" /> : <Briefcase className="w-6 h-6" />}
                                 </div>
                                 <div>
@@ -771,6 +981,12 @@ export const CalendarView = () => {
                                         <span className="text-sm text-slate-500 truncate max-w-[200px]">
                                             {selectedEvent.resource.contractTitle}
                                         </span>
+                                        {selectedEvent.resource.visitNotes && (
+                                            <span className="text-xs bg-violet-50 text-violet-600 border border-violet-200 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
+                                                <MessageSquare className="w-3 h-3" />
+                                                Remarks
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -780,7 +996,7 @@ export const CalendarView = () => {
                         </div>
 
                         {/* Modal Body */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50/50">
+                        <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar bg-slate-50/50">
 
                             {/* 1. Status Selector (For non-invoices) */}
                             {selectedEvent.type !== 'invoice' && (
@@ -795,6 +1011,60 @@ export const CalendarView = () => {
                                         <option value="work informed">Work Informed</option>
                                         <option value="work done">Work Done</option>
                                     </select>
+                                </div>
+                            )}
+
+                            {/* ─── Remarks Section ─── */}
+                            {selectedEvent.type !== 'invoice' && (
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                            <MessageSquare className="w-3.5 h-3.5 text-violet-500" />
+                                            Remarks
+                                        </label>
+                                        {!isEditingRemarks ? (
+                                            <button
+                                                onClick={() => setIsEditingRemarks(true)}
+                                                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-indigo-50 transition-colors"
+                                            >
+                                                <MessageSquare className="w-3 h-3" />
+                                                {remarksText ? "Edit" : "Add Remark"}
+                                            </button>
+                                        ) : (
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => { setIsEditingRemarks(false); setRemarksText(selectedEvent.resource.visitNotes || ""); }}
+                                                    className="text-xs font-semibold text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleSaveRemarks}
+                                                    disabled={savingRemarks}
+                                                    className="text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-60"
+                                                >
+                                                    <Save className="w-3 h-3" />
+                                                    {savingRemarks ? "Saving..." : "Save"}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {isEditingRemarks ? (
+                                        <textarea
+                                            value={remarksText}
+                                            onChange={(e) => setRemarksText(e.target.value)}
+                                            placeholder="Add remarks for this date (e.g. timing changes, special instructions)..."
+                                            rows={3}
+                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none"
+                                        />
+                                    ) : remarksText ? (
+                                        <div className="bg-violet-50 border border-violet-100 rounded-lg p-3 text-sm text-violet-900 leading-relaxed">
+                                            {remarksText}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-slate-400 italic">No remarks added yet. Click "Add Remark" to add notes.</p>
+                                    )}
                                 </div>
                             )}
 
@@ -859,7 +1129,7 @@ export const CalendarView = () => {
                                         const { contractId, job } = selectedEvent.resource;
                                         navigate(`/invoices/collect?contractId=${contractId}&jobId=${job._id}&scheduledDate=${selectedEvent.start.toISOString()}`);
                                     }}
-                                    className={`px-5 py-2.5 rounded-xl text-white font-medium shadow-lg active:scale-95 transition-all text-sm flex items-center gap-2 ${selectedEvent.status === 'collected' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-200'
+                                    className={`px-5 py-2.5 rounded-xl text-white font-medium shadow-lg active:scale-95 transition-all text-sm flex items-center gap-2 ${selectedEvent.status === 'collected' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' : 'bg-red-500 hover:bg-red-600 shadow-red-200'
                                         }`}
                                 >
                                     <CheckCircle2 className="w-4 h-4" />
@@ -874,6 +1144,53 @@ export const CalendarView = () => {
                                     View Full Details
                                 </button>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── Close Job Confirmation Popup ─── */}
+            {closeJobConfirm && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" />
+
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in fade-in zoom-in duration-200">
+                        {/* Icon */}
+                        <div className="flex flex-col items-center text-center mb-5">
+                            <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-green-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-emerald-200">
+                                <CheckCheck className="w-8 h-8 text-white" />
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-900 mb-2">All Schedules Completed!</h2>
+                            <p className="text-slate-500 text-sm leading-relaxed">
+                                All scheduled visits in this job are now marked as <span className="font-semibold text-emerald-700">Work Done</span>.
+                                <br /><br />
+                                Do you want to <span className="font-semibold text-slate-800">close this job</span>?
+                            </p>
+                        </div>
+
+                        {/* Info badge */}
+                        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-5">
+                            <Lock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                            <p className="text-xs text-amber-700 leading-relaxed">
+                                Closing the job will set its overall status to <strong>Work Done</strong>. You can still view all details.
+                            </p>
+                        </div>
+
+                        {/* Buttons */}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setCloseJobConfirm(null)}
+                                className="flex-1 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors text-sm"
+                            >
+                                Keep Open
+                            </button>
+                            <button
+                                onClick={handleCloseJob}
+                                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-green-700 shadow-lg shadow-emerald-200 transition-all active:scale-95 text-sm flex items-center justify-center gap-2"
+                            >
+                                <CheckCheck className="w-4 h-4" />
+                                Close Job
+                            </button>
                         </div>
                     </div>
                 </div>

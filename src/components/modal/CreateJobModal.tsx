@@ -45,8 +45,10 @@ export default function JobModal({
       rate: number | string;
       subtotalPerYear: number;
       frequencyDays: number | string;
-      frequencyUnit: "day" | "week" | "month" | "year";
+      frequencyUnit: "day" | "week" | "month" | "year" | "custom";
       isEvery: boolean;
+      customFrequencyValue?: number | string;
+      customFrequencyUnit?: "day" | "week" | "month" | "year";
     }>;
   }>({
     jobType: "recurring",
@@ -74,6 +76,8 @@ export default function JobModal({
         frequencyDays: 1,
         frequencyUnit: "month",
         isEvery: false,
+        customFrequencyValue: 1,
+        customFrequencyUnit: "day",
       },
     ],
   });
@@ -127,7 +131,9 @@ export default function JobModal({
         },
         servicesProducts: job.servicesProducts.map(s => ({
           ...s,
-          frequencyUnit: s.frequencyUnit || "month"
+          frequencyUnit: s.frequencyUnit || "month",
+          customFrequencyValue: s.customFrequencyValue ?? 1,
+          customFrequencyUnit: s.customFrequencyUnit ?? "day",
         })),
       });
     } else if (mode === "create") {
@@ -157,6 +163,8 @@ export default function JobModal({
             frequencyDays: 1,
             frequencyUnit: "month",
             isEvery: false,
+            customFrequencyValue: 1,
+            customFrequencyUnit: "day",
           },
         ],
       });
@@ -179,26 +187,42 @@ export default function JobModal({
     const updated = [...formData.servicesProducts];
     updated[index] = { ...updated[index], [field]: value };
 
-    if (field === "units" || field === "rate" || field === "frequencyDays" || field === "frequencyUnit" || field === "isEvery") {
+    if (field === "units" || field === "rate" || field === "frequencyDays" || field === "frequencyUnit" || field === "isEvery" || field === "customFrequencyValue" || field === "customFrequencyUnit") {
       const service = updated[index];
       const units = Number(service.units) || 0;
       const rate = Number(service.rate) || 0;
-      const freq = Number(service.frequencyDays) || 1;
 
       let occurrencesPerYear;
 
-      if (service.isEvery) {
-        if (service.frequencyUnit === "day") occurrencesPerYear = 365 / freq;
-        else if (service.frequencyUnit === "week") occurrencesPerYear = 52 / freq;
-        else if (service.frequencyUnit === "month") occurrencesPerYear = 12 / freq;
-        else if (service.frequencyUnit === "year") occurrencesPerYear = 1 / freq;
-        else occurrencesPerYear = 12 / freq;
+      if (service.frequencyUnit === "custom") {
+        const customFreq = Number(service.customFrequencyValue) || 1;
+        const customUnit = service.customFrequencyUnit || "day";
+        if (service.isEvery) {
+          if (customUnit === "day") occurrencesPerYear = 365 / customFreq;
+          else if (customUnit === "week") occurrencesPerYear = 52 / customFreq;
+          else if (customUnit === "month") occurrencesPerYear = 12 / customFreq;
+          else occurrencesPerYear = 1 / customFreq;
+        } else {
+          if (customUnit === "day") occurrencesPerYear = customFreq * 365;
+          else if (customUnit === "week") occurrencesPerYear = customFreq * 52;
+          else if (customUnit === "month") occurrencesPerYear = customFreq * 12;
+          else occurrencesPerYear = customFreq * 1;
+        }
       } else {
-        if (service.frequencyUnit === "day") occurrencesPerYear = freq * 365;
-        else if (service.frequencyUnit === "week") occurrencesPerYear = freq * 52;
-        else if (service.frequencyUnit === "month") occurrencesPerYear = freq * 12;
-        else if (service.frequencyUnit === "year") occurrencesPerYear = freq * 1;
-        else occurrencesPerYear = freq * 12;
+        const freq = Number(service.frequencyDays) || 1;
+        if (service.isEvery) {
+          if (service.frequencyUnit === "day") occurrencesPerYear = 365 / freq;
+          else if (service.frequencyUnit === "week") occurrencesPerYear = 52 / freq;
+          else if (service.frequencyUnit === "month") occurrencesPerYear = 12 / freq;
+          else if (service.frequencyUnit === "year") occurrencesPerYear = 1 / freq;
+          else occurrencesPerYear = 12 / freq;
+        } else {
+          if (service.frequencyUnit === "day") occurrencesPerYear = freq * 365;
+          else if (service.frequencyUnit === "week") occurrencesPerYear = freq * 52;
+          else if (service.frequencyUnit === "month") occurrencesPerYear = freq * 12;
+          else if (service.frequencyUnit === "year") occurrencesPerYear = freq * 1;
+          else occurrencesPerYear = freq * 12;
+        }
       }
 
       updated[index].subtotalPerYear = units * rate * occurrencesPerYear;
@@ -221,6 +245,8 @@ export default function JobModal({
           frequencyDays: 1,
           frequencyUnit: "month",
           isEvery: false,
+          customFrequencyValue: 1,
+          customFrequencyUnit: "day",
         },
       ],
     });
@@ -250,6 +276,8 @@ export default function JobModal({
           rate: Number(s.rate) || 0,
           frequencyDays: Number(s.frequencyDays) || 1,
           frequencyUnit: s.frequencyUnit || "month",
+          customFrequencyValue: Number(s.customFrequencyValue) || 1,
+          customFrequencyUnit: s.customFrequencyUnit || "day",
         })),
         subtotal,
         vat,
@@ -542,13 +570,15 @@ export default function JobModal({
                               Frequency
                             </label>
                             <div className="flex gap-2">
-                              <input
-                                type="number"
-                                value={service.frequencyDays}
-                                onChange={(e) => updateService(index, "frequencyDays", e.target.value)}
-                                className="w-16 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500"
-                                min="1"
-                              />
+                              {service.frequencyUnit !== "custom" && (
+                                <input
+                                  type="number"
+                                  value={service.frequencyDays}
+                                  onChange={(e) => updateService(index, "frequencyDays", e.target.value)}
+                                  className="w-16 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500"
+                                  min="1"
+                                />
+                              )}
                               <select
                                 value={service.frequencyUnit}
                                 onChange={(e) => updateService(index, "frequencyUnit", e.target.value)}
@@ -558,8 +588,38 @@ export default function JobModal({
                                 <option value="week">Week</option>
                                 <option value="month">Month</option>
                                 <option value="year">Year</option>
+                                <option value="custom">Custom</option>
                               </select>
                             </div>
+
+                            {service.frequencyUnit === "custom" && (
+                              <div className="mt-2 bg-amber-50 rounded-lg p-3 border border-amber-100 flex gap-2 items-end">
+                                <div className="flex-1">
+                                  <label className="block text-xs font-medium text-amber-700 mb-1">Value</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={service.customFrequencyValue}
+                                    onChange={(e) => updateService(index, "customFrequencyValue", e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:outline-none focus:border-amber-500"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <label className="block text-xs font-medium text-amber-700 mb-1">Unit</label>
+                                  <select
+                                    value={service.customFrequencyUnit}
+                                    onChange={(e) => updateService(index, "customFrequencyUnit", e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:outline-none focus:border-amber-500"
+                                  >
+                                    <option value="day">Days</option>
+                                    <option value="week">Weeks</option>
+                                    <option value="month">Months</option>
+                                    <option value="year">Years</option>
+                                  </select>
+                                </div>
+                              </div>
+                            )}
+
                             <label className="flex items-center gap-2 mt-2 cursor-pointer">
                               <input
                                 type="checkbox"

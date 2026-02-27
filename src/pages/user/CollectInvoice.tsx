@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { createInvoice } from "@/store/invoice/thunk";
 import { fetchJobById } from "@/store/contract/thunk";
-import { ArrowLeft, Briefcase, Calendar, CheckCircle2, DollarSign } from "lucide-react";
+import { ArrowLeft, Briefcase, Calendar, CheckCircle2, DollarSign, Pencil, Check } from "lucide-react";
 
 export default function CollectInvoice() {
     const [searchParams] = useSearchParams();
@@ -30,6 +30,7 @@ export default function CollectInvoice() {
         collectionDate: new Date().toISOString().split("T")[0],
         items: [] as any[]
     });
+    const [editingRows, setEditingRows] = useState<boolean[]>([]);
 
     useEffect(() => {
         if (job) {
@@ -41,6 +42,7 @@ export default function CollectInvoice() {
             }));
 
             setFormData(prev => ({ ...prev, items: invoiceItems }));
+            setEditingRows(new Array(invoiceItems.length).fill(false));
         }
     }, [job]);
 
@@ -171,57 +173,90 @@ export default function CollectInvoice() {
 
                                 {/* Table Rows */}
                                 <div className="divide-y divide-slate-100 bg-white">
-                                    {formData.items.map((item, idx) => (
-                                        <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-4 px-5 py-4 items-center hover:bg-slate-50/80 transition-colors group">
+                                    {formData.items.map((item, idx) => {
+                                        const isEditing = editingRows[idx];
+                                        return (
+                                            <div key={idx} className={`grid grid-cols-1 md:grid-cols-12 gap-4 px-5 py-4 items-center transition-colors ${isEditing ? 'bg-indigo-50/60' : 'hover:bg-slate-50/80'} group`}>
 
-                                            {/* Description Input */}
-                                            <div className="col-span-1 md:col-span-5">
-                                                <label className="md:hidden text-xs font-bold text-slate-400 uppercase mb-1 block">Description</label>
-                                                <input
-                                                    type="text"
-                                                    value={item.description}
-                                                    onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
-                                                    className="w-full bg-transparent border-b border-transparent focus:border-indigo-500 outline-none text-sm font-medium text-slate-900 placeholder:text-slate-400 py-1 transition-colors"
-                                                    placeholder="Service description"
-                                                />
-                                            </div>
+                                                {/* Description */}
+                                                <div className="col-span-1 md:col-span-5">
+                                                    <label className="md:hidden text-xs font-bold text-slate-400 uppercase mb-1 block">Description</label>
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="text"
+                                                            value={item.description}
+                                                            onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
+                                                            className="w-full px-3 py-1.5 bg-white border border-indigo-200 rounded-lg outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 text-sm font-medium text-slate-900 transition-all"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-sm font-medium text-slate-900">{item.description}</span>
+                                                    )}
+                                                </div>
 
-                                            {/* Units Input */}
-                                            <div className="col-span-1 md:col-span-2">
-                                                <label className="md:hidden text-xs font-bold text-slate-400 uppercase mb-1 block">Units</label>
-                                                <input
-                                                    type="number"
-                                                    value={item.units}
-                                                    onChange={(e) => handleItemChange(idx, 'units', Number(e.target.value))}
-                                                    className="w-full bg-transparent border-b border-transparent focus:border-indigo-500 outline-none text-sm text-slate-600 py-1 transition-colors"
-                                                    placeholder="0"
-                                                />
-                                            </div>
+                                                {/* Units */}
+                                                <div className="col-span-1 md:col-span-2">
+                                                    <label className="md:hidden text-xs font-bold text-slate-400 uppercase mb-1 block">Units</label>
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="number"
+                                                            value={item.units}
+                                                            onChange={(e) => handleItemChange(idx, 'units', Number(e.target.value))}
+                                                            className="w-full px-3 py-1.5 bg-white border border-indigo-200 rounded-lg outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 text-sm text-slate-700 transition-all"
+                                                            placeholder="0"
+                                                            min="0"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-sm text-slate-600">{item.units}</span>
+                                                    )}
+                                                </div>
 
-                                            {/* Rate Input */}
-                                            <div className="col-span-1 md:col-span-2">
-                                                <label className="md:hidden text-xs font-bold text-slate-400 uppercase mb-1 block">Rate</label>
-                                                <div className="relative">
-                                                    <span className="absolute left-0 top-1 text-slate-400 text-sm hidden group-focus-within:inline">$</span>
-                                                    <input
-                                                        type="number"
-                                                        value={item.rate}
-                                                        onChange={(e) => handleItemChange(idx, 'rate', Number(e.target.value))}
-                                                        className="w-full bg-transparent border-b border-transparent focus:border-indigo-500 outline-none text-sm text-slate-600 py-1 transition-colors"
-                                                        placeholder="0.00"
-                                                    />
+                                                {/* Rate */}
+                                                <div className="col-span-1 md:col-span-2">
+                                                    <label className="md:hidden text-xs font-bold text-slate-400 uppercase mb-1 block">Rate</label>
+                                                    {isEditing ? (
+                                                        <div className="relative">
+                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-semibold">AED</span>
+                                                            <input
+                                                                type="number"
+                                                                value={item.rate}
+                                                                onChange={(e) => handleItemChange(idx, 'rate', Number(e.target.value))}
+                                                                className="w-full pl-10 pr-3 py-1.5 bg-white border border-indigo-200 rounded-lg outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 text-sm text-slate-700 transition-all"
+                                                                placeholder="0.00"
+                                                                min="0"
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-sm text-slate-600">{item.rate}</span>
+                                                    )}
+                                                </div>
+
+                                                {/* Subtotal + Edit Toggle */}
+                                                <div className="col-span-1 md:col-span-3 flex items-center justify-between md:justify-end gap-2">
+                                                    <div className="text-left md:text-right">
+                                                        <label className="md:hidden text-xs font-bold text-slate-400 uppercase mb-1 block">Subtotal</label>
+                                                        <span className={`text-sm font-bold px-2.5 py-1 rounded-lg ${isEditing ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-900'}`}>
+                                                            AED {Number(item.subtotal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                        </span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const updated = [...editingRows];
+                                                            updated[idx] = !updated[idx];
+                                                            setEditingRows(updated);
+                                                        }}
+                                                        title={isEditing ? 'Done editing' : 'Edit this item'}
+                                                        className={`shrink-0 p-1.5 rounded-lg transition-all ${isEditing
+                                                                ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
+                                                                : 'bg-slate-100 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600'
+                                                            }`}
+                                                    >
+                                                        {isEditing ? <Check className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
+                                                    </button>
                                                 </div>
                                             </div>
-
-                                            {/* Subtotal Display */}
-                                            <div className="col-span-1 md:col-span-3 text-left md:text-right">
-                                                <label className="md:hidden text-xs font-bold text-slate-400 uppercase mb-1 block">Subtotal</label>
-                                                <span className="text-sm font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded">
-                                                    AED {Number(item.subtotal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
