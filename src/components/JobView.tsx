@@ -43,9 +43,15 @@ export default function JobViewPage() {
 
   useEffect(() => {
     if (job?.invoiceReminder) {
+      const startStr = job.invoiceReminder.startDate;
+      const endStr = job.invoiceReminder.endDate;
+
+      const startDate = startStr ? new Date(startStr) : null;
+      const endDate = endStr ? new Date(endStr) : null;
+
       setInvoiceDates({
-        startDate: new Date(job.invoiceReminder.startDate).toISOString().split('T')[0],
-        endDate: new Date(job.invoiceReminder.endDate).toISOString().split('T')[0]
+        startDate: (startDate && !isNaN(startDate.getTime())) ? startDate.toISOString().split('T')[0] : "",
+        endDate: (endDate && !isNaN(endDate.getTime())) ? endDate.toISOString().split('T')[0] : ""
       });
     }
     if (job) {
@@ -396,8 +402,24 @@ export default function JobViewPage() {
                     </h4>
                     <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                       {(() => {
-                        const start = new Date(isEditingInvoice ? invoiceDates.startDate : job.invoiceReminder.startDate);
-                        const end = new Date(isEditingInvoice ? invoiceDates.endDate : job.invoiceReminder.endDate);
+                        const startDateVal = isEditingInvoice ? invoiceDates.startDate : job.invoiceReminder.startDate;
+                        const endDateVal = isEditingInvoice ? invoiceDates.endDate : job.invoiceReminder.endDate;
+
+                        if (!startDateVal || !endDateVal) {
+                          return <p className="text-sm text-gray-500 italic">Please select both start and end dates.</p>;
+                        }
+
+                        const start = new Date(startDateVal);
+                        const end = new Date(endDateVal);
+
+                        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                          return <p className="text-sm text-gray-500 italic">Invalid date format.</p>;
+                        }
+
+                        if (start > end) {
+                          return <p className="text-sm text-gray-500 italic">Start date must be before end date.</p>;
+                        }
+
                         let current = new Date(start);
 
                         let months = 1;
@@ -410,9 +432,12 @@ export default function JobViewPage() {
 
                         // Generate dates
                         const dates = [];
-                        while (current <= end) {
+                        // Safety limit to avoid infinite loops
+                        let safety = 0;
+                        while (current <= end && safety < 120) {
                           dates.push(new Date(current));
                           current.setMonth(current.getMonth() + months);
+                          safety++;
                         }
 
                         // Calculate amount per invoice
