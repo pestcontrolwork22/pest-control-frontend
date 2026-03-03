@@ -115,19 +115,19 @@ export default function JobModal({
     if (mode === "edit" && job) {
       setFormData({
         jobType: job.jobType,
-        contractDate: job.contractDate.split("T")[0],
-        startDate: job.startDate.split("T")[0],
-        endDate: job.endDate.split("T")[0],
+        contractDate: job.contractDate?.split("T")[0] || "",
+        startDate: job.startDate?.split("T")[0] || "",
+        endDate: job.endDate?.split("T")[0] || "",
         contractedBy: job.contractedBy,
         dayType: job.dayType || "day",
         expiryRemindBefore: job.expiryRemindBefore,
         isTaxExempt: job.isTaxExempt,
         invoiceReminder: {
-          startDate: job.invoiceReminder.startDate.split("T")[0],
-          endDate: job.invoiceReminder.endDate.split("T")[0],
-          billingFrequency: job.invoiceReminder.billingFrequency,
-          customFrequencyValue: job.invoiceReminder.customFrequencyValue,
-          customFrequencyUnit: job.invoiceReminder.customFrequencyUnit,
+          startDate: job.invoiceReminder?.startDate?.split("T")[0] || "",
+          endDate: job.invoiceReminder?.endDate?.split("T")[0] || "",
+          billingFrequency: job.invoiceReminder?.billingFrequency || "monthly",
+          customFrequencyValue: job.invoiceReminder?.customFrequencyValue ?? 15,
+          customFrequencyUnit: job.invoiceReminder?.customFrequencyUnit || "day",
         },
         servicesProducts: job.servicesProducts.map(s => ({
           ...s,
